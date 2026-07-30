@@ -1,0 +1,17 @@
+# M5 unseen-pair race (D): 410M -> 160M (24->12 layers, 16->12 heads), 3 seeds.
+# Same budget/schedule as the primary pair; seeds vary the data draw (see m5_train).
+seed: 0
+deterministic: true
+large: "410m"
+small: "160m"
+
+tokens: 30000000
+seq_len: 1024
+batch_size: 32
+lr: 3.0e-4
+warmup_steps: 100
+weight_decay: 0.1
+grad_clip: 1.0
+log_every_tokens: 2000000
+quick_eval_tokens: 50000
+skip_docs: 10000

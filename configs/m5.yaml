@@ -1,0 +1,16 @@
+# M5 recovery runs — identical budget/schedule/data for every init arm
+seed: 0
+deterministic: true
+large: "1.4b"
+small: "410m"
+
+tokens: 30000000        # budget per arm (first pass; extend if curves still moving)
+seq_len: 1024
+batch_size: 32          # 32k tokens/step
+lr: 3.0e-4
+warmup_steps: 100
+weight_decay: 0.1
+grad_clip: 1.0
+log_every_tokens: 2000000
+quick_eval_tokens: 50000   # wikitext prefix scored at each log point
+skip_docs: 10000           # contamination guard vs eval_tokens.pt (stream head)

@@ -1,0 +1,42 @@
+[project]
+name = "scaleop"
+version = "0.1.0"
+description = "Learning parameter-space scaling operators for transformer model families (Phase 1)"
+requires-python = ">=3.12"
+# torch comes from the PyTorch CUDA index (pinned below in [tool.uv.sources]);
+# aarch64/Blackwell GB10 uses the cu130 wheel.
+dependencies = [
+    "torch==2.13.0",
+    "transformers>=4.40",
+    "datasets>=2.19",
+    "accelerate>=0.30",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "scikit-learn>=1.4",
+    "pyyaml>=6.0",
+    "matplotlib>=3.8",
+    "tqdm>=4.66",
+    "hf-transfer>=0.1.9",
+    "zstandard>=0.22",   # decode the Pile's .jsonl.zst shards (in-distribution corpus)
+]
+
+[project.optional-dependencies]
+# lm-eval is only needed from M3 onward and can pin an older transformers;
+# install into the same env at M3 so its resolver constraints don't gate M0-M2.
+eval = ["lm-eval>=0.4.2"]
+dev = ["pytest>=8.0"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.setuptools.packages.find]
+include = ["lib*"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

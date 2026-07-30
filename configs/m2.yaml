@@ -1,0 +1,5 @@
+# M2 alignment — primary pair (width-only, same 24-layer depth)
+seed: 0
+deterministic: true
+large: "1.4b"    # 24 layers, d_model 2048
+small: "410m"    # 24 layers, d_model 1024

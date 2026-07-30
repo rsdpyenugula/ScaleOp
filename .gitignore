@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# OS
+.DS_Store
+
+# Claude Code transient artifacts
+.claude/scheduled_tasks.lock
+
+# Data & experiment artifacts (frozen corpora, activation caches, results) —
+# keep the dirs in the tree, ignore their (large, regenerable) contents.
+data/*
+!data/.gitkeep
+project_docs/results/*
+!project_docs/results/.gitkeep
+
+# HF cache overrides (if placed in-repo)
+.hf_cache/
+
+# Notebooks
+.ipynb_checkpoints/
