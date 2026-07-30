@@ -84,6 +84,10 @@ Single family (Pythia) → port to Llama/Qwen/DeepSeek/Kimi (adapter + per-arch
 safe-blend analysis); 410M scale → 7B+ (Paper 2); budgets ≪ full recovery;
 single/3 seeds; read-in compensation unexplored (LN renormalization); cross-
 family operators likely need aligned representations, not raw weights.
+Reduction-aware conversion (our planned extension): depth cuts are the
+uncompensable axis — (a) block-rescale/distill deleted blocks into survivors,
+(b) choose the reduction mix per parameter budget (prefer width over depth);
+both fall out of the width-vs-depth boundary measured in §7.
 
 ## 9. Broader impact
 Energy/cost reduction for model families; released artifacts.
