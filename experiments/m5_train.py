@@ -44,7 +44,7 @@ def build_init(arm, cfg, device):
     rotary_pct = model_L.config.rope_parameters["partial_rotary_factor"]
     WL = extract_weights(model_L)
     moments = None
-    if arm == "hybrid":
+    if arm in ("hybrid", "hybrid_rs"):
         from lib.activations import second_moments
         from lib.data import load_eval_tokens
         moments = second_moments(model_L, load_eval_tokens()["tokens"][:1000])
@@ -53,7 +53,7 @@ def build_init(arm, cfg, device):
     WL = {k: v.to(device) for k, v in WL.items()}
 
     spec_L, spec = resolve_spec(cfg["large"]), resolve_spec(small)
-    if arm in ("subclone", "subclone_rs", "subclone_iso", "hybrid"):
+    if arm in ("subclone", "subclone_rs", "subclone_iso", "hybrid", "hybrid_rs"):
         res_idx = subclone.residual_selection(cfg["large"], spec.d_model)
         stride = spec_L.layers // spec.layers
         kw = dict(heads=spec_L.heads, head_dim_small=spec.d_model // spec.heads,
@@ -65,6 +65,12 @@ def build_init(arm, cfg, device):
         else:
             W = subclone.hybrid_weights(WL, res_idx, moments, **kw)
             del moments
+            if arm == "hybrid_rs":  # reference-recipe scale on the LN-fronted reads
+                r = (WL[(0, "Q")].shape[1] / spec.d_model) ** 0.5
+                for l in range(spec.layers):
+                    for t in ("Q", "K", "V", "MLP_UP"):
+                        W[(l, t)] = W[(l, t)] * r
+                W[(-1, "EMB_OUT")] = W[(-1, "EMB_OUT")] * r
     elif arm == "projection":
         if spec_L.layers != spec.layers:
             raise NotImplementedError("projection arm has no depth mapping (pair-B races run without it)")
@@ -86,7 +92,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/m5.yaml")
     ap.add_argument("--init", required=True,
-                    choices=["subclone", "subclone_rs", "subclone_iso", "projection", "random", "hybrid"])
+                    choices=["subclone", "subclone_rs", "subclone_iso", "projection", "random", "hybrid", "hybrid_rs"])
     ap.add_argument("--seed", type=int, default=None, help="override config seed; also offsets the data draw")
     ap.add_argument("--tag", default="", help="suffix for run name + checkpoint (multi-pair/seed runs)")
     args = ap.parse_args()
