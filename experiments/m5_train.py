@@ -103,6 +103,8 @@ def main() -> int:
                     choices=["subclone", "subclone_rs", "subclone_iso", "projection", "random", "hybrid", "hybrid_rs"])
     ap.add_argument("--seed", type=int, default=None, help="override config seed; also offsets the data draw")
     ap.add_argument("--tag", default="", help="suffix for run name + checkpoint (multi-pair/seed runs)")
+    ap.add_argument("--resume", action="store_true",
+                    help="resume from data/m5/ckpt/<init><tag>.pt if present (for long/interruptible runs)")
     args = ap.parse_args()
     cfg = load_config(args.config)
     if args.seed is not None:
@@ -131,8 +133,30 @@ def main() -> int:
         opt, lambda s: min(1.0, (s + 1) / warmup) *
         (0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * min(1.0, s / steps_total)))))
 
+    # Optional checkpointing for long convergence runs (survives crashes/interruptions).
+    ckpt_every = cfg.get("ckpt_every_tokens", 0)
+    ckpt_path = Path("data/m5/ckpt") / f"{args.init}{args.tag}.pt"
+
+    def save_ckpt():
+        ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = ckpt_path.with_suffix(".tmp")
+        torch.save({"model": model.state_dict(), "opt": opt.state_dict(),
+                    "sched": sched.state_dict(), "seen": seen, "curve": curve}, tmp)
+        tmp.replace(ckpt_path)   # atomic
+
+    if args.resume and ckpt_path.exists():
+        st = torch.load(ckpt_path, map_location=dev, weights_only=False)
+        model.load_state_dict(st["model"]); opt.load_state_dict(st["opt"])
+        sched.load_state_dict(st["sched"]); seen = st["seen"]; curve[:] = st["curve"]
+        next_log = ((seen // cfg["log_every_tokens"]) + 1) * cfg["log_every_tokens"]
+        print(f"[m5-{args.init}] resumed at t={seen/1e6:.0f}M; fast-forwarding data stream...", flush=True)
+
     batches = pile_train_batches(tok, seq_len=cfg["seq_len"], batch_size=cfg["batch_size"],
                                  skip_docs=cfg["skip_docs"])
+    if seen:  # replay the deterministic stream to the resume point (order preserved)
+        for _ in range(seen // (cfg["seq_len"] * cfg["batch_size"])):
+            next(batches)
+        model.train()
     for step, batch in enumerate(batches):
         batch = batch.to(dev)
         with torch.autocast(dev.type, dtype=torch.bfloat16):
@@ -155,6 +179,8 @@ def main() -> int:
             print(f"[m5-{args.init}] t={seen / 1e6:.0f}M ppl={ppl:,.1f} "
                   f"loss={loss_sum / loss_n:.3f} ({tps / 1e3:.1f}k tok/s)", flush=True)
             loss_sum, loss_n, next_log = 0.0, 0, next_log + cfg["log_every_tokens"]
+            if ckpt_every and seen % ckpt_every < cfg["seq_len"] * cfg["batch_size"]:
+                save_ckpt()
         if seen >= cfg["tokens"]:
             break
 

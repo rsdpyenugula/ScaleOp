@@ -1,0 +1,19 @@
+# Convergence run (Paper 1 strengthening): 1.4B -> 410M toward useful quality.
+# ~1B tokens (~0.3% of Pythia-410M's 300B pretraining) — enough to approach
+# the real 410M (ppl 15.6) and show our init leads to it, not just early.
+seed: 0
+deterministic: true
+large: "1.4b"
+small: "410m"
+
+tokens: 1000000000        # 1B
+seq_len: 1024
+batch_size: 32
+lr: 3.0e-4
+warmup_steps: 200
+weight_decay: 0.1
+grad_clip: 1.0
+log_every_tokens: 20000000     # log every 20M
+quick_eval_tokens: 100000
+skip_docs: 10000
+ckpt_every_tokens: 50000000    # checkpoint every 50M (crash insurance)
