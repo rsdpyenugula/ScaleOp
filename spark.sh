@@ -39,10 +39,8 @@ pull() {
   # the Mac source-of-truth (and survives the --delete on future pushes).
   rsync -az -e "ssh -o BatchMode=yes -i \"$SPARK_KEY\"" \
     "$SPARK_HOST:$REMOTE_DIR/uv.lock" "$LOCAL_DIR/uv.lock" 2>/dev/null || true
-  # Bring back generated artifacts (reports are committed; results are gitignored
-  # but useful to inspect locally).
-  rsync -az -e "ssh -o BatchMode=yes -i \"$SPARK_KEY\"" \
-    "$SPARK_HOST:$REMOTE_DIR/project_docs/reports"/ "$LOCAL_DIR/project_docs/reports"/
+  # Results only — reports are AUTHORED ON THE MAC and must never be pulled
+  # (a stale Spark copy once clobbered fresh local edits; see git e0fd28d).
   rsync -az -e "ssh -o BatchMode=yes -i \"$SPARK_KEY\"" \
     "$SPARK_HOST:$REMOTE_DIR/project_docs/results"/ "$LOCAL_DIR/project_docs/results"/ 2>/dev/null || true
   echo "pulled reports+results <- $SPARK_HOST"

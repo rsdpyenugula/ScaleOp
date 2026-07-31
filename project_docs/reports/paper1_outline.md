@@ -20,10 +20,13 @@ functionally destructive — provably not an assembly artifact — because blend
 breaks rotary/per-head/GELU/LayerNorm structure; (iii) after the best-fit linear
 operator, weight residuals are statistically indistinguishable from noise under
 shuffle controls; (iv) therefore conversion value lives in *initialization*: in
-a matched-budget recovery race, selection ("subcloning") beats dense blending
-3×, and our **selection + closed-form least-squares compensation** beats
-subcloning a further **3.1×** (wikitext ppl 114 vs 356 at 30M tokens; 13× better
-than from-scratch), holding out-of-domain (C4) and at 2× training context.
+a matched-budget recovery race we decompose conversion into two independent
+levers — least-squares **compensation** (function: best zero-shot) and
+variance-preserving **rescale** (training dynamics: best endpoints) — whose
+combination dominates the strongest subcloning variant on both axes and in
+every seed (final ppl 83.9±1.8 vs 89.7±3.7, 3/3 paired wins; zero-shot 18.5k
+vs 61.9k; 18× better than from-scratch at 30M tokens), holding out-of-domain
+(C4), at 2× training context, and on a held-out depth-dominated pair (3 seeds).
 Code, checkpoints, and the frozen evaluation corpus released.
 
 ## 1. Introduction (funnel: broad → thesis → contributions)
@@ -87,6 +90,10 @@ Single family (Pythia) → port to Llama/Qwen/DeepSeek/Kimi (adapter + per-arch
 safe-blend analysis); 410M scale → 7B+ (Paper 2); budgets ≪ full recovery;
 single/3 seeds; read-in compensation unexplored (LN renormalization); cross-
 family operators likely need aligned representations, not raw weights.
+Reduction-aware conversion (our planned extension): depth cuts are the
+uncompensable axis — (a) block-rescale/distill deleted blocks into survivors,
+(b) choose the reduction mix per parameter budget (prefer width over depth);
+both fall out of the width-vs-depth boundary measured in §7.
 
 ## 9. Broader impact
 Energy/cost reduction for model families; released artifacts.
