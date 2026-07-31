@@ -27,23 +27,33 @@ TASKS = ["lambada_openai", "arc_easy", "hellaswag", "piqa"]
 CKPT_DIR = Path("data/m5/30M")
 
 
-def each_model(device):
-    cfg = AutoConfig.from_pretrained(resolve_spec("410m").name)
-    for arm in ("hybrid", "subclone", "projection", "random"):
+def each_model(device, small, ckpt_dir, tag, arms):
+    cfg = AutoConfig.from_pretrained(resolve_spec(small).name)
+    for arm in arms:
         model = GPTNeoXForCausalLM(cfg)
-        model.load_state_dict(torch.load(CKPT_DIR / f"{arm}.pt", weights_only=True))
+        model.load_state_dict(torch.load(ckpt_dir / f"{arm}{tag}.pt", weights_only=True))
         yield arm, model.to(device).eval()
-    yield "real_410m", load_model("410m", device=device)
+    yield f"real_{small}", load_model(small, device=device)
 
 
 def main() -> int:
+    import argparse
+
     import lm_eval
     from lm_eval.models.huggingface import HFLM
 
-    run = make_run("m5_extended_eval", {"seed": 0})
-    tok = load_tokenizer("410m")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--small", default="410m")
+    ap.add_argument("--ckpt-dir", default=str(CKPT_DIR))
+    ap.add_argument("--tag", default="", help="checkpoint suffix, e.g. _b_s0")
+    ap.add_argument("--arms", nargs="*", default=["hybrid", "subclone", "projection", "random"])
+    args = ap.parse_args()
+
+    run = make_run(f"m5_extended_eval{args.tag}", {"seed": 0})
+    tok = load_tokenizer(args.small)
     results = {}
-    for name, model in each_model(run.device):
+    for name, model in each_model(run.device, args.small, Path(args.ckpt_dir),
+                                  args.tag, args.arms):
         row = {
             "c4_ppl": wikitext_perplexity(model, tok, dataset="c4", max_tokens=200_000),
             "wikitext_ppl_ctx2048": wikitext_perplexity(model, tok, seq_len=2048,
