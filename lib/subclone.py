@@ -114,7 +114,7 @@ def subclone_weights(WL: dict, res_idx: torch.Tensor, *, heads: int,
                      head_dim_small: int, mlp_small: int, rotary_pct: float,
                      heads_small: int | None = None,
                      keep_blocks: list[int] | None = None,
-                     sel: dict | None = None, rescale: bool = False) -> dict:
+                     sel: dict | None = None, rescale: str | bool = False) -> dict:
     """Select a small-shape weight dict out of a large one (extract_weights keys).
 
     rescale=True applies the reference recipe's √(d_in/d_in′) factor to each
@@ -151,17 +151,20 @@ def subclone_weights(WL: dict, res_idx: torch.Tensor, *, heads: int,
     out[(-1, "EMB_OUT")] = WL[(-1, "EMB_OUT")][:, res_idx]
     out[(-1, "LNF_W")] = WL[(-1, "LNF_W")][res_idx]
     out[(-1, "LNF_B")] = WL[(-1, "LNF_B")][res_idx]
-    if rescale:
+    if rescale:  # "full" = reference recipe everywhere; "smart" = only the two
+        # paths with NO normalization between the cut and the read (O, MLP_DOWN)
         d_L = WL[(0, "Q")].shape[1]
-        r_res = (d_L / len(res_idx)) ** 0.5                     # residual-input cut
+        r_res = (d_L / len(res_idx)) ** 0.5
         r_vo = (WL[(keep_blocks[0], "O")].shape[1] / len(sel[(0, "vo")])) ** 0.5
         r_mlp = (WL[(keep_blocks[0], "MLP_DOWN")].shape[1] / mlp_small) ** 0.5
         for l in range(len(keep_blocks)):
-            for t in ("Q", "K", "V", "MLP_UP"):
-                out[(l, t)] = out[(l, t)] * r_res
             out[(l, "O")] = out[(l, "O")] * r_vo
             out[(l, "MLP_DOWN")] = out[(l, "MLP_DOWN")] * r_mlp
-        out[(-1, "EMB_OUT")] = out[(-1, "EMB_OUT")] * r_res
+            if rescale == "full":
+                for t in ("Q", "K", "V", "MLP_UP"):
+                    out[(l, t)] = out[(l, t)] * r_res
+        if rescale == "full":
+            out[(-1, "EMB_OUT")] = out[(-1, "EMB_OUT")] * r_res
     return out
 
 
