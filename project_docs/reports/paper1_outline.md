@@ -75,19 +75,17 @@ reviewers reward pre-registered-style controls.)
 ## 7. The recovery race — the payoff  — *(write from: M5.md)*
 Four inits, identical budget/schedule/data (no target leakage); curves figure;
 final table; hybrid method box (selection rules + `ls_compensate` equation);
-hardening: [PLACEHOLDER extended-eval table: C4, ctx-2048, 4 tasks],
-[PLACEHOLDER 100M persistence verdict + curves], [PLACEHOLDER unseen-pair
-410M→160M ×3 seeds]. Compute accounting incl. init costs (~0).
+hardening: extended-eval table (ordering holds on C4/ctx-2048/4 tasks; M5.md),
+100M persistence (hybrid 62.3 vs subclone 103.1; ~2.6× token efficiency),
+unseen pair ×3 seeds (hybrid 113.2±4.5 ≈ subclone 118.5±3.3, both ~13× over
+random 1505±58 — the width-vs-depth compensation boundary). Compute accounting
+incl. init costs (~0). [PENDING: 100M spot-check on the unseen-pair tie.]
 
 ## 8. Limitations & future work (the citation-farm section — explicit invites)
 Single family (Pythia) → port to Llama/Qwen/DeepSeek/Kimi (adapter + per-arch
 safe-blend analysis); 410M scale → 7B+ (Paper 2); budgets ≪ full recovery;
 single/3 seeds; read-in compensation unexplored (LN renormalization); cross-
 family operators likely need aligned representations, not raw weights.
-Reduction-aware conversion (our planned extension): depth cuts are the
-uncompensable axis — (a) block-rescale/distill deleted blocks into survivors,
-(b) choose the reduction mix per parameter budget (prefer width over depth);
-both fall out of the width-vs-depth boundary measured in §7.
 
 ## 9. Broader impact
 Energy/cost reduction for model families; released artifacts.
