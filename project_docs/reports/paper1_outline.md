@@ -100,6 +100,62 @@ m5_curves (4 runners) ✓ · [100M curves — pending] · [extended-eval table �
 Repo public + README quickstart; checkpoints (4×30M + 2×100M) to HF; frozen
 corpus recipe; `pip freeze`/uv.lock export; v0.1 tag (plan M6.3).
 
+## Style guide (extracted from the anchor papers' mechanics)
+
+**Template/venue format:** ICLR LaTeX (both anchors are ICLR): single column,
+9–10 pages main text, unlimited references/appendix, Reproducibility Statement
+after the conclusion. NeurIPS variant adds the checklist + Broader Impact.
+
+**Abstract (both anchors):** problem → named method → *numbers first* in the
+results clause ("only 3% of compute" / "save up to 50%"). Ours leads with the
+3.1×/13×/2.6× trio.
+
+**Introduction (Sheared LLaMA move set):** motivation ¶ → *explicit italicized
+research question* → approach ¶ → bulleted contributions (we have 4).
+
+**Method math (LiGO move set):** density escalates — informal → review existing
+operators with numbered eqs → our operators, each constraint justified (why
+selection = the architecture's symmetry group; why compensation is the
+closed-form optimum). Include an **Algorithm box** (selection scoring +
+`ls_compensate`). Adopt their vocabulary: "structured sparse linear operators",
+"factorize/decompose", "architecture-aware".
+
+**Results conventions:**
+- Tables: **bold best**, explicit budget column ("#tokens"), ± std where seeds
+  exist, footnotes for caveats (cosine-horizon confound, single-seed cells).
+- Curves: metric vs tokens AND wall-clock; **dashed horizontal line for the
+  reference model** (real 410M/160M) — both anchors do this.
+- Fairness: attribute every baseline's data/budget in-table (Sheared LLaMA
+  footnote style); state that all arms share data order, schedule, budget.
+- Savings phrasing: "reaches the same perplexity with X× fewer tokens" —
+  LiGO's "reach the same performance" anchor sentence.
+
+**Terminology map (ours → paper):** wires → units/dimensions · blend → dense
+linear projection · selection → structured selection · race → matched-budget
+continued pre-training · hybrid → **Compensated Selection (working name;
+owner may rename)** · squeeze → size conversion.
+
+## Writing plan (results-first order; ~5 working days)
+
+1. **Figures/tables freeze** (0.5d): regenerate all figures at paper quality
+   (dashed reference lines, budget axes), assemble every table with finals —
+   nothing gets written against moving numbers.
+2. **§4–7 results sections** (1.5d): drafted from M2–M5 reports (the numbers
+   and verdicts are already written there; this is translation, not creation).
+3. **§3 setup + Algorithm box + appendix configs** (0.5d): from M0/M1 +
+   configs/*.yaml (LiGO-style reproducibility tables).
+4. **§2 related work** (0.5d): anchors + pruning-with-reconstruction lineage +
+   CKA/stitching; the R3.3 fidelity differences disclosed here.
+5. **§1 intro + §8–9 + abstract LAST** (1d): abstract only after all numbers
+   are frozen in tables.
+6. **Review passes** (1d): owner rewrite/voice pass (the text should be the
+   owner's), then a cold read against the reviewer-pin list (R3), then the
+   reproducibility statement + release checklist.
+
+Division of labor: draft skeleton + numbers + formatting = assistant;
+**final prose voice, claims, and all sign-offs = owner** (also the honest
+answer to any authorship question).
+
 ## Verdict templates (plan M6.1 — both pre-written; we landed on POSITIVE-hybrid)
 - Positive (ours): "Conversion value is real but lives in initialization;
   structure-respecting selection + linear compensation dominates."
