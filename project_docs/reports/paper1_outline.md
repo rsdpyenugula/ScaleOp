@@ -20,10 +20,14 @@ functionally destructive — provably not an assembly artifact — because blend
 breaks rotary/per-head/GELU/LayerNorm structure; (iii) after the best-fit linear
 operator, weight residuals are statistically indistinguishable from noise under
 shuffle controls; (iv) therefore conversion value lives in *initialization*: in
-a matched-budget recovery race, selection ("subcloning") beats dense blending
-3×, and our **selection + closed-form least-squares compensation** beats
-subcloning a further **3.1×** (wikitext ppl 114 vs 356 at 30M tokens; 13× better
-than from-scratch), holding out-of-domain (C4) and at 2× training context.
+a matched-budget recovery race we decompose conversion into two independent
+levers — least-squares **compensation** (function: best zero-shot) and
+variance-preserving **rescale** (training dynamics: best endpoints) — whose
+combination dominates the strongest subcloning variant on both axes
+(final ppl 83.0 vs 86.4; zero-shot 18.5k vs 61.9k; 18× better than
+from-scratch at 30M tokens), holding out-of-domain (C4), at 2× training
+context, and on a held-out depth-dominated pair (3 seeds). [Seeded error bars
+for the top margin pending — restate if bars overlap.]
 Code, checkpoints, and the frozen evaluation corpus released.
 
 ## 1. Introduction (funnel: broad → thesis → contributions)
