@@ -1,0 +1,16 @@
+# M5 scale validation: 6.9B -> 1.4B (width 2x, heads 32->16, depth 32->24), unseen pair
+seed: 0
+deterministic: true
+large: "6.9b"
+small: "1.4b"
+
+tokens: 30000000
+seq_len: 1024
+batch_size: 16          # 1.4B target: halve batch for activation memory
+lr: 2.0e-4              # Pythia-1.4b's own pretraining LR
+warmup_steps: 100
+weight_decay: 0.1
+grad_clip: 1.0
+log_every_tokens: 2000000
+quick_eval_tokens: 50000
+skip_docs: 10000

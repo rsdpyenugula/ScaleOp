@@ -55,11 +55,19 @@ def build_init(arm, cfg, device):
     spec_L, spec = resolve_spec(cfg["large"]), resolve_spec(small)
     if arm in ("subclone", "subclone_rs", "subclone_iso", "hybrid", "hybrid_rs"):
         res_idx = subclone.residual_selection(cfg["large"], spec.d_model)
-        stride = spec_L.layers // spec.layers
+        if spec_L.layers == spec.layers:
+            keep_blocks = None
+        elif spec_L.layers % spec.layers == 0:          # integer stride (pair B mapping)
+            stride = spec_L.layers // spec.layers
+            keep_blocks = list(range(0, spec_L.layers, stride))
+        else:                                            # evenly spaced (e.g. 32 -> 24)
+            keep_blocks = sorted({round(i * (spec_L.layers - 1) / (spec.layers - 1))
+                                  for i in range(spec.layers)})
+            assert len(keep_blocks) == spec.layers, "depth mapping produced duplicates"
         kw = dict(heads=spec_L.heads, head_dim_small=spec.d_model // spec.heads,
                   mlp_small=4 * spec.d_model, rotary_pct=rotary_pct,
                   heads_small=spec.heads if spec.heads != spec_L.heads else None,
-                  keep_blocks=list(range(0, spec_L.layers, stride))[:spec.layers] if stride > 1 else None)
+                  keep_blocks=keep_blocks)
         if arm.startswith("subclone"):
             W = subclone.subclone_weights(WL, res_idx, rescale={"subclone_rs": "full", "subclone_iso": "smart"}.get(arm, False), **kw)
         else:

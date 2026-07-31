@@ -35,6 +35,7 @@ MODEL_SUITE: dict[str, ModelSpec] = {
     "410m": ModelSpec("EleutherAI/pythia-410m", layers=24, d_model=1024, heads=16),
     "1b":   ModelSpec("EleutherAI/pythia-1b",   layers=16, d_model=2048, heads=8),
     "1.4b": ModelSpec("EleutherAI/pythia-1.4b", layers=24, d_model=2048, heads=16),
+    "6.9b": ModelSpec("EleutherAI/pythia-6.9b", layers=32, d_model=4096, heads=32),
 }
 
 
