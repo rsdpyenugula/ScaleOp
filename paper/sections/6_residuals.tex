@@ -22,7 +22,7 @@ size-map can explain. Four tests probe $\Delta$, each against a matched control.
 \paragraph{Test 1 --- spectral (effective rank).}
 Table~\ref{tab:erank} compares the effective rank of $\Delta$ against a per-type
 shuffled control and a shape/scale-matched Gaussian control. $\Delta$ sits
-$3$--$6\%$ below both controls in every type: a \emph{faint} spectral
+$2.8$--$6.4\%$ below both controls in every type: a \emph{faint} spectral
 concentration, so the residual is not perfectly isotropic noise
 (Figure~\ref{fig:spectra}).
 
@@ -51,7 +51,7 @@ error by $-0.0004$/$-0.0003$, again indistinguishable from its shuffle control
 Test~3.
 
 \paragraph{Reconciling the faint spectral signal.}
-Tests 1 and 3 are not in tension. The $3$--$6\%$ spectral deficit is a
+Tests 1 and 3 are not in tension. The $2.8$--$6.4\%$ spectral deficit is a
 \emph{generic} statistical trace --- mild row/column-norm heterogeneity, for
 instance --- not a correspondence between $\hat{W}$ and $\Delta$ that any
 predictor can exploit. A behavioral cross-check agrees: an assembled 410M whose
@@ -80,7 +80,7 @@ of \S\ref{sec:race}.
 \centering
 \caption{Test 1 (spectral). Effective rank of the residual $\Delta$ vs.\ a
 per-type shuffled control and a shape/scale-matched Gaussian control. $\Delta$
-sits $3$--$6\%$ below both in every type --- a faint, non-isotropic
+sits $2.8$--$6.4\%$ below both in every type --- a faint, non-isotropic
 concentration, not a learnable direction.}
 \label{tab:erank}
 \begin{tabular}{lccc}
@@ -126,7 +126,7 @@ predicting zero.}
 % source: results/m4_residuals/*/delta_spectra.png (gitignored, regenerable)
 \includegraphics[width=0.6\linewidth]{figures/delta_spectra.png}
 \caption{Test 1 (spectral). Singular-value spectrum of the residual $\Delta$
-against shuffled and Gaussian controls. $\Delta$ concentrates $3$--$6\%$ more
+against shuffled and Gaussian controls. $\Delta$ concentrates $2.8$--$6.4\%$ more
 than either control in every weight type --- a faint, generic non-isotropy that
 carries no layer-specific, predictable signal (Table~\ref{tab:predictor}).}
 \label{fig:spectra}

@@ -24,7 +24,7 @@ a matched-budget recovery race we decompose conversion into two independent
 levers — least-squares **compensation** (function: best zero-shot) and
 variance-preserving **rescale** (training dynamics: best endpoints) — whose
 combination dominates the strongest subcloning variant on both axes and in
-every seed (final ppl 83.9±1.8 vs 89.7±3.7, 3/3 paired wins; zero-shot 18.5k
+every seed (final ppl 84.0±1.8 vs 89.7±3.7, 3/3 paired wins; zero-shot 18.5k
 vs 61.9k; 18× better than from-scratch at 30M tokens), holding out-of-domain
 (C4), at 2× training context, and on a held-out depth-dominated pair (3 seeds).
 Code, checkpoints, and the frozen evaluation corpus released.
