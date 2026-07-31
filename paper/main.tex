@@ -1,0 +1,60 @@
+\documentclass{article}
+% ICLR template (2026 style files as base; swap to iclr2027_conference.* on release)
+\usepackage{iclr2026_conference,times}
+\usepackage{natbib}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% \iclrfinalcopy  % uncomment for camera-ready (de-anonymizes)
+
+\title{Wiring Beats Blending: What Transfers Between\\Transformer Sizes --- and What Doesn't}
+
+\author{Anonymous authors\\
+\texttt{(double-blind submission)}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Model families train every size from scratch. Can a pretrained large model be
+converted into a smaller sibling? We characterize the 1.4B$\to$410M conversion
+in the Pythia family end-to-end: (i)~representations align strongly across
+sizes (ridge $R^2=0.84$) while parameters align weakly; (ii)~dense weight
+projection is functionally destructive --- provably not an assembly artifact ---
+because basis mixing breaks rotary, per-head, GELU, and LayerNorm structure;
+(iii)~after the best-fit linear operator, weight residuals are statistically
+indistinguishable from noise under shuffle controls; (iv)~conversion value
+therefore lives in \emph{initialization}: in matched-budget continued
+pre-training we decompose conversion into two independent levers ---
+least-squares \textbf{compensation} (function: best zero-shot) and
+variance-preserving \textbf{rescale} (training dynamics: best endpoints) ---
+whose combination dominates the strongest subcloning variant on both axes and
+in every seed ($83.9\pm1.8$ vs.\ $89.7\pm3.7$ final perplexity, 3/3 paired
+wins; 18$\times$ better than from-scratch at 30M tokens), holding
+out-of-domain, at $2\times$ training context, and on a held-out
+depth-dominated pair (3 seeds). Code, checkpoints, and the frozen evaluation
+corpus are released.
+\end{abstract}
+
+\input{sections/1_intro}
+\input{sections/2_related}
+\input{sections/3_setup}
+\input{sections/4_representations}
+\input{sections/5_projection}
+\input{sections/6_residuals}
+\input{sections/7_race}
+\input{sections/8_limitations}
+
+\subsubsection*{Reproducibility statement}
+% TODO: repo + HF links (public at camera-ready), uv.lock pinning, determinism
+% notes (bit-identical per-GPU), frozen-corpus recipe, all seeds/configs in repo.
+
+\bibliography{references}
+\bibliographystyle{iclr2026_conference}
+
+\end{document}
