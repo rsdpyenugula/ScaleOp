@@ -1,0 +1,206 @@
+% ============================================================
+% References for "Wiring Beats Blending"
+% Cite-key convention: firstauthorYEARkeyword
+% Venues verified 2026-07-31; published venue preferred over arXiv
+% where one exists.
+% ============================================================
+
+% ---------- Model family, data, architecture ----------
+
+@inproceedings{biderman2023pythia,
+  title     = {Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling},
+  author    = {Biderman, Stella and Schoelkopf, Hailey and Anthony, Quentin and Bradley, Herbie and O'Brien, Kyle and Hallahan, Eric and Khan, Mohammad Aflah and Purohit, Shivanshu and Prashanth, USVSN Sai and Raff, Edward and Skowron, Aviya and Sutawika, Lintang and van der Wal, Oskar},
+  booktitle = {Proceedings of the 40th International Conference on Machine Learning (ICML)},
+  publisher = {PMLR},
+  pages     = {2397--2430},
+  year      = {2023}
+}
+
+@article{gao2020pile,
+  title   = {The {Pile}: An 800{GB} Dataset of Diverse Text for Language Modeling},
+  author  = {Gao, Leo and Biderman, Stella and Black, Sid and Golding, Laurence and Hoppe, Travis and Foster, Charles and Phang, Jason and He, Horace and Thite, Anish and Nabeshima, Noa and Presser, Shawn and Leahy, Connor},
+  journal = {arXiv preprint arXiv:2101.00027},
+  year    = {2020}
+}
+
+@inproceedings{black2022gptneox,
+  title     = {{GPT-NeoX-20B}: An Open-Source Autoregressive Language Model},
+  author    = {Black, Sid and Biderman, Stella and Hallahan, Eric and Anthony, Quentin and Gao, Leo and Golding, Laurence and He, Horace and Leahy, Connor and McDonell, Kyle and Phang, Jason and Pieler, Michael and Prashanth, USVSN Sai and Purohit, Shivanshu and Reynolds, Laria and Tow, Jonathan and Wang, Ben and Weinbach, Samuel},
+  booktitle = {Proceedings of BigScience Episode \#5 --- Workshop on Challenges \& Perspectives in Creating Large Language Models},
+  pages     = {95--136},
+  year      = {2022}
+}
+
+@article{su2024roformer,
+  title   = {{RoFormer}: Enhanced transformer with Rotary Position Embedding},
+  author  = {Su, Jianlin and Ahmed, Murtadha and Lu, Yu and Pan, Shengfeng and Bo, Wen and Liu, Yunfeng},
+  journal = {Neurocomputing},
+  volume  = {568},
+  pages   = {127063},
+  year    = {2024}
+}
+
+@inproceedings{loshchilov2019decoupled,
+  title     = {Decoupled Weight Decay Regularization},
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2019}
+}
+
+% ---------- Evaluation ----------
+
+@inproceedings{merity2017pointer,
+  title     = {Pointer Sentinel Mixture Models},
+  author    = {Merity, Stephen and Xiong, Caiming and Bradbury, James and Socher, Richard},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2017}
+}
+
+@misc{gao2024harness,
+  title        = {The Language Model Evaluation Harness},
+  author       = {Gao, Leo and Tow, Jonathan and Abbasi, Baber and Biderman, Stella and Black, Sid and DiPofi, Anthony and Foster, Charles and Golding, Laurence and Hsu, Jeffrey and Le Noac'h, Alain and Li, Haonan and McDonell, Kyle and Muennighoff, Niklas and Ociepa, Chris and Phang, Jason and Reynolds, Laria and Schoelkopf, Hailey and Skowron, Aviya and Sutawika, Lintang and Tang, Eric and Thite, Anish and Wang, Ben and Wang, Kevin and Zou, Andy},
+  howpublished = {Zenodo, version v0.4.3},
+  doi          = {10.5281/zenodo.12608602},
+  year         = {2024}
+}
+
+@inproceedings{paperno2016lambada,
+  title     = {The {LAMBADA} dataset: Word prediction requiring a broad discourse context},
+  author    = {Paperno, Denis and Kruszewski, Germ{\'a}n and Lazaridou, Angeliki and Pham, Ngoc Quan and Bernardi, Raffaella and Pezzelle, Sandro and Baroni, Marco and Boleda, Gemma and Fern{\'a}ndez, Raquel},
+  booktitle = {Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL)},
+  pages     = {1525--1534},
+  year      = {2016}
+}
+
+@article{clark2018arc,
+  title   = {Think you have Solved Question Answering? {Try} {ARC}, the {AI2} Reasoning Challenge},
+  author  = {Clark, Peter and Cowhey, Isaac and Etzioni, Oren and Khot, Tushar and Sabharwal, Ashish and Schoenick, Carissa and Tafjord, Oyvind},
+  journal = {arXiv preprint arXiv:1803.05457},
+  year    = {2018}
+}
+
+@inproceedings{zellers2019hellaswag,
+  title     = {{HellaSwag}: Can a Machine Really Finish Your Sentence?},
+  author    = {Zellers, Rowan and Holtzman, Ari and Bisk, Yonatan and Farhadi, Ali and Choi, Yejin},
+  booktitle = {Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics (ACL)},
+  pages     = {4791--4800},
+  year      = {2019}
+}
+
+@inproceedings{bisk2020piqa,
+  title     = {{PIQA}: Reasoning about Physical Commonsense in Natural Language},
+  author    = {Bisk, Yonatan and Zellers, Rowan and Le Bras, Ronan and Gao, Jianfeng and Choi, Yejin},
+  booktitle = {Proceedings of the 34th AAAI Conference on Artificial Intelligence},
+  pages     = {7432--7439},
+  year      = {2020}
+}
+
+% ---------- Downscaling pretrained models ----------
+
+@article{samragh2023weight,
+  title   = {Weight subcloning: direct initialization of transformers using larger pretrained ones},
+  author  = {Samragh, Mohammad and Farajtabar, Mehrdad and Mehta, Sachin and Vemulapalli, Raviteja and Faghri, Fartash and Naik, Devang and Tuzel, Oncel and Rastegari, Mohammad},
+  journal = {arXiv preprint arXiv:2312.09299},
+  year    = {2023}
+}
+
+@inproceedings{xia2024sheared,
+  title     = {Sheared {LLaMA}: Accelerating Language Model Pre-training via Structured Pruning},
+  author    = {Xia, Mengzhou and Gao, Tianyu and Zeng, Zhiyuan and Chen, Danqi},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024}
+}
+
+@inproceedings{ma2023llmpruner,
+  title     = {{LLM-Pruner}: On the Structural Pruning of Large Language Models},
+  author    = {Ma, Xinyin and Fang, Gongfan and Wang, Xinchao},
+  booktitle = {Advances in Neural Information Processing Systems 36 (NeurIPS)},
+  year      = {2023}
+}
+
+@inproceedings{hassibi1993optimal,
+  title     = {Second Order Derivatives for Network Pruning: Optimal Brain Surgeon},
+  author    = {Hassibi, Babak and Stork, David G.},
+  booktitle = {Advances in Neural Information Processing Systems 5 (NIPS)},
+  pages     = {164--171},
+  year      = {1993}
+}
+
+@article{hinton2015distilling,
+  title   = {Distilling the Knowledge in a Neural Network},
+  author  = {Hinton, Geoffrey and Vinyals, Oriol and Dean, Jeff},
+  journal = {arXiv preprint arXiv:1503.02531},
+  year    = {2015}
+}
+
+% ---------- Upscaling / model growth ----------
+
+@inproceedings{chen2016net2net,
+  title     = {{Net2Net}: Accelerating Learning via Knowledge Transfer},
+  author    = {Chen, Tianqi and Goodfellow, Ian and Shlens, Jonathon},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2016}
+}
+
+@inproceedings{chen2022bert2bert,
+  title     = {{bert2BERT}: Towards Reusable Pretrained Language Models},
+  author    = {Chen, Cheng and Yin, Yichun and Shang, Lifeng and Jiang, Xin and Qin, Yujia and Wang, Fengyu and Wang, Zhi and Chen, Xiao and Liu, Zhiyuan and Liu, Qun},
+  booktitle = {Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (ACL)},
+  year      = {2022}
+}
+
+@inproceedings{shen2022staged,
+  title     = {Staged Training for Transformer Language Models},
+  author    = {Shen, Sheng and Walsh, Pete and Keutzer, Kurt and Dodge, Jesse and Peters, Matthew and Beltagy, Iz},
+  booktitle = {Proceedings of the 39th International Conference on Machine Learning (ICML)},
+  publisher = {PMLR},
+  pages     = {19893--19908},
+  year      = {2022}
+}
+
+@inproceedings{wang2023ligo,
+  title     = {Learning to Grow Pretrained Models for Efficient Transformer Training},
+  author    = {Wang, Peihao and Panda, Rameswar and Torroba Hennigen, Lucas and Greengard, Philip and Karlinsky, Leonid and Feris, Rogerio and Cox, David D. and Wang, Zhangyang and Kim, Yoon},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2023}
+}
+
+% ---------- Representation similarity and symmetries ----------
+
+@inproceedings{kornblith2019similarity,
+  title     = {Similarity of Neural Network Representations Revisited},
+  author    = {Kornblith, Simon and Norouzi, Mohammad and Lee, Honglak and Hinton, Geoffrey},
+  booktitle = {Proceedings of the 36th International Conference on Machine Learning (ICML)},
+  publisher = {PMLR},
+  pages     = {3519--3529},
+  year      = {2019}
+}
+
+@inproceedings{raghu2017svcca,
+  title     = {{SVCCA}: Singular Vector Canonical Correlation Analysis for Deep Learning Dynamics and Interpretability},
+  author    = {Raghu, Maithra and Gilmer, Justin and Yosinski, Jason and Sohl-Dickstein, Jascha},
+  booktitle = {Advances in Neural Information Processing Systems 30 (NeurIPS)},
+  year      = {2017}
+}
+
+@inproceedings{lenc2015understanding,
+  title     = {Understanding Image Representations by Measuring their Equivariance and Equivalence},
+  author    = {Lenc, Karel and Vedaldi, Andrea},
+  booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {991--999},
+  year      = {2015}
+}
+
+@inproceedings{bansal2021revisiting,
+  title     = {Revisiting Model Stitching to Compare Neural Representations},
+  author    = {Bansal, Yamini and Nakkiran, Preetum and Barak, Boaz},
+  booktitle = {Advances in Neural Information Processing Systems 34 (NeurIPS)},
+  year      = {2021}
+}
+
+@inproceedings{ainsworth2023git,
+  title     = {Git {Re-Basin}: Merging Models modulo Permutation Symmetries},
+  author    = {Ainsworth, Samuel K. and Hayase, Jonathan and Srinivasa, Siddhartha},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2023}
+}

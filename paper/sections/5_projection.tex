@@ -1,4 +1,127 @@
 \section{Why dense projection fails}
-% From M3.md: target-free projection residuals >1; ppl anchors incl. LN
-% correction (181k -> 12.3k); identity-reconstruction bit-exact; diagnosis:
-% rotary / per-head / GELU / per-feature-LN break under basis mixing.
+\label{sec:projection}
+
+If representations align across sizes, the natural attempt is to project the
+large model's weights into the small model's shape and read off a working small
+model. We formulate this projection using only the size relationship (never the
+target's weights), measure the residual, run the assembled model, and diagnose
+why it breaks. The verdict is that dense blending destroys the network's
+structured computation --- and, via a bit-exact control, that the destruction is
+in the projection mathematics, not the assembly.
+
+\paragraph{Target-free projection.}
+Each weight is mapped by a pair of structured linear operators,
+\begin{equation}
+\hat{W} \;=\; P_{\text{out}}\, W\, P_{\text{in}}^{\top},
+\qquad
+P_{\bullet} \in \{\, P_{\text{res}},\, P_{QK},\, P_{VO},\, P_{\text{MLP}} \,\},
+\label{eq:project}
+\end{equation}
+whose bases are built \emph{only} from the large model and the size
+relationship, never from the 410M target. The residual-stream axis uses a global
+activation-PCA basis $P_{\text{res}}$; the internal axes use SVD bases
+\emph{shared between interacting weights}, so that composed operations stay
+consistent --- $Q$ and $K$ share one basis, $V$ and $O$ share one, and
+\texttt{MLP\_UP}/\texttt{MLP\_DOWN} share a single joint basis computed from the
+column stack $[\mathrm{UP},\,\mathrm{DOWN}^{\top}]$. Sharing is not cosmetic: a
+per-weight basis for the MLP hidden axis cannot span the target, since one
+$8192\times2048$ matrix has rank $\le 2048 < 4096$, so the interacting pair must
+be factorized together.
+
+\paragraph{The projected weights miss the target solution.}
+Table~\ref{tab:proj} reports the relative Frobenius error of $\hat{W}$ against
+the actual 410M weights, averaged over 24 layers, for the target-free projection
+of Eq.~\ref{eq:project} and --- as a diagnostic upper bound --- a shared operator
+$(A,B)$ \emph{fitted} with access to the target. Every target-free error exceeds
+$1$, i.e.\ worse than predicting zero: the projected weights share almost nothing
+with the 410M's particular solution, confirming the activation-versus-weight gap
+of \S\ref{sec:representations} at every layer. Even the fitted operator, which
+peeks at the target, only reaches $0.66$--$0.80$; at best $\sim$30\% of weight
+variance is linearly explainable across sizes with one shared map.
+
+\paragraph{Behavioral anchors.}
+We assemble a 410M-shaped model from the projected 1.4B weights and score
+strided WikiText-103 perplexity against reference and anchor models
+(Table~\ref{tab:anchor}). Greedy generation is deterministic but word salad, and
+the acceptance bar --- beat random init --- is not met zero-shot. The
+\emph{shape} of the failure is instructive: random init produces near-uniform
+logits (perplexity on the order of the vocabulary size), whereas the projected
+model is confidently wrong, which scores far worse than uniform.
+
+\paragraph{The failure is projection math, not assembly.}
+Before diagnosing the mechanism, we rule out a plumbing bug. Rebuilding the 1.4B
+from its own extracted weights with \emph{no} projection reproduces the real
+model's logits with $\max|\text{diff}| = 0$ --- bit-exact (previewed in
+\S\ref{sec:setup}). Extraction, head-aware QKV split/fuse, embeddings, and
+LayerNorm plumbing are all correct, so the entire quality loss in
+Table~\ref{tab:anchor} is attributable to Eq.~\ref{eq:project}.
+
+\paragraph{Structure mixing breaks the computation.}
+A dense basis change on any internal axis silently changes what the block
+\emph{computes}, because every structured or nonlinear operation is tied to
+specific coordinates. \emph{Rotary embeddings} act on fixed per-head dimension
+pairs, so any head-space mixing distorts positions. \emph{Attention is per-head},
+yet our global $2048\!\to\!1024$ head-space basis mixes dimensions \emph{across}
+heads. \emph{GELU is elementwise} in the MLP hidden space, so
+$\mathrm{GELU}(Bx)\neq B\,\mathrm{GELU}(x)$. \emph{LayerNorm gains and biases are
+per-feature} in the residual stream, so a rotated stream no longer matches any
+diagonal gain --- which is why the projected-LN variant explodes to $10^{13}$.
+The consequence is that function-preserving zero-shot conversion needs
+structure-respecting \emph{selection} maps --- keep or drop whole heads, hidden
+units, and features, the architecture's own symmetry group --- rather than dense
+blending. Dense learned projections are thus useful as \emph{initializations} for
+brief fine-tuning, not as drop-in models; \S\ref{sec:race} takes up exactly that
+comparison.
+
+\begin{table}[t]
+\centering
+\caption{Relative Frobenius error of projected weights vs.\ the actual 410M
+weights, mean over 24 layers. Every target-free error exceeds $1$ (worse than
+predicting zero). Lower error per row in \textbf{bold}.}
+\label{tab:proj}
+\begin{tabular}{lcc}
+\toprule
+Weight & Projection (target-free) & Operator (fitted)$^{\dagger}$ \\
+\midrule
+$Q$            & 1.471 & \textbf{0.658} \\
+$K$            & 1.591 & \textbf{0.758} \\
+$V$            & 1.390 & \textbf{0.804} \\
+$O$            & 1.724 & \textbf{0.795} \\
+\texttt{MLP\_UP}   & 1.668 & \textbf{0.683} \\
+\texttt{MLP\_DOWN} & 1.723 & \textbf{0.686} \\
+\bottomrule
+\end{tabular}
+\\[3pt]
+{\footnotesize $^{\dagger}$ A single $(A,B)$ shared across layers per type; it
+peeks at the target and so upper-bounds the linearly explainable fraction. A
+\emph{per-layer} fit is degenerate (error $\to 0$ around any full-rank $W$) and
+is not reported.}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Zero-shot language-modeling quality of the dense-projected model
+(strided WikiText-103 perplexity). The projected model does not beat random
+init. Best (lowest) in \textbf{bold}.}
+\label{tab:anchor}
+\begin{tabular}{lc}
+\toprule
+Model & Perplexity \\
+\midrule
+real 1.4B (reference)        & \textbf{11.5} \\
+real 410M (upper anchor)     & 15.6 \\
+random-init 410M (lower anchor) & 65{,}962 \\
+\midrule
+projected, LN copied from 410M   & 181{,}242 \\
+projected, LN projected from 1.4B & $10^{13}$ \\
+\bottomrule
+\end{tabular}
+\\[3pt]
+{\footnotesize With fresh \emph{neutral} LayerNorms (gain 1, bias 0) the same
+projected matrices score $\sim$12.3k quick-perplexity --- $\sim$15$\times$ better
+than the 181{,}242 row and $\sim$5$\times$ better than random init --- so much of
+the collapse is LayerNorm mismatch, not weight destruction alone
+(\S\ref{sec:race}); the structure-mixing diagnosis still holds directionally.}
+% TODO(owner): keep this forward-reference to the neutral-LN result here, or
+% move it entirely into the recovery-race section? It previews S7's setup.
+\end{table}

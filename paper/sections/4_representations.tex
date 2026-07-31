@@ -1,3 +1,89 @@
 \section{Representations align, parameters do not}
-% From M2.md: CKA heatmap (saturated middle band), ridge 0.84 vs Procrustes
-% 0.72, embeddings weight-space R2 0.25-0.39. Figures: cka_heatmap, maps_r2.
+\label{sec:representations}
+
+A size conversion presupposes that the two family members are related; the
+question is \emph{where} the relation lives. On the primary width-only pair
+(1.4B$\,\to\,$410M, same depth and head count; \S\ref{sec:setup}) we measure
+the relation in two places --- the representations both models compute, and the
+parameters they store --- and find it in only one of them.
+% TODO(owner): a sharper one-line thesis here would carry the whole paper.
+
+\paragraph{Layer correspondence saturates under CKA.}
+Linear CKA between all $24\times24$ layer pairs, computed on the similarity
+subset (all token positions; \S\ref{sec:setup}), gives a diagonal mean of
+$0.883$, yet only $12\%$ of layers place their single best match exactly on the
+diagonal. The reason is visible in Figure~\ref{fig:align} (left): the heatmap is
+one large saturated block --- layers 0--2 distinct, the middle band (layers
+$\sim$4--22) mutually $\approx1.0$, layer 23 distinct. Linear CKA therefore
+confirms only \emph{coarse} early/mid/late correspondence and saturates in the
+middle band (a known limitation of the metric), so it is not a sharp per-layer
+discriminator. This motivates a directional, quantitative map: how much of the
+small model's representation is a linear image of the large model's?
+
+\paragraph{Activations are largely a linear image across widths.}
+Per layer, we fit a large$\,\to\,$small map on pooled activations (8k train /
+2k held-out) and score held-out $R^2$ under two operators of increasing
+freedom: \emph{Procrustes} (a rotation plus one global scale) and \emph{ridge}
+(a full linear map $2048\!\to\!1024$). Ridge reaches a mean held-out
+$R^2=0.844$ (Table~\ref{tab:align}): the 410M pooled representation is largely a
+linear projection of the 1.4B's, capturing $84\%$ of held-out variance.
+Procrustes already reaches $0.717$, so most of the relationship is a change of
+basis; the $\sim$0.13 gap is genuine non-orthogonal reshaping. Both maps are
+discriminative per layer and dip together at layers 3--5 ---
+the same layers CKA flagged as distinct (Figure~\ref{fig:align}, right).
+
+\paragraph{Raw parameters do not.}
+The token embeddings are the one weight matrix where the two sizes share an axis
+(the vocabulary) and differ only in width, so a single map applies; we split
+rows (tokens) $80/20$. Even in this cleanest case a linear map explains only
+$0.25$--$0.39$ of weight variance (Table~\ref{tab:align}): ridge $R^2=0.248$ on
+the input embedding and $0.386$ on the output embedding, against $0.844$ for
+activations.
+
+\paragraph{The representation--parameter gap.}
+Two independently trained members of a family arrive at closely related
+\emph{representations} while their \emph{parameters} are only loosely a linear
+map of one another. This gap is the pivot of the paper. If representations align
+but weights do not, then projecting the large model's weights into the small
+model's shape (\S\ref{sec:projection}) must leave a substantial residual, and
+whether that residual is structured and learnable or merely noise
+(\S\ref{sec:residuals}) decides where conversion value can come from.
+
+\begin{figure}[t]
+\centering
+% source: results/m2_cka/*/cka_heatmap.png and results/m2_maps/*/maps_r2.png
+% (gitignored, regenerable at paper quality; dashed reference lines per style guide)
+\includegraphics[width=0.46\linewidth]{figures/cka_heatmap.png}
+\hfill
+\includegraphics[width=0.46\linewidth]{figures/maps_r2.png}
+\caption{Alignment across sizes for the primary pair (1.4B$\,\to\,$410M).
+\textbf{(left)} Linear CKA between all $24\times24$ layer pairs: a saturated
+middle band (layers $\sim$4--22 mutually $\approx1.0$) confirms coarse
+correspondence but resolves no sharp per-layer match. \textbf{(right)} Held-out
+$R^2$ of the per-layer activation maps: ridge (full linear) and Procrustes
+(rotation$+$scale) track each other and dip together at layers 3--5, the layers
+CKA also flags as distinct.}
+\label{fig:align}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Alignment across sizes, held-out. Activations align strongly under a
+linear map; raw parameters, even in the cleanest (embedding) case, do not.
+Best (highest) map per row in \textbf{bold}.}
+\label{tab:align}
+\begin{tabular}{lccc}
+\toprule
+Target & CKA & Ridge $R^2$ & Procrustes $R^2$ \\
+\midrule
+Pooled activations (per-layer mean) & $0.883^{\dagger}$ & \textbf{0.844} & 0.717 \\
+\midrule
+Input embedding & 0.512 & \textbf{0.248} & 0.167 \\
+Output embedding (unembedding) & 0.678 & \textbf{0.386} & 0.242 \\
+\bottomrule
+\end{tabular}
+\\[3pt]
+{\footnotesize $^{\dagger}$ For activations, the diagonal mean of the
+$24\times24$ linear-CKA matrix, which saturates in the middle band
+(Figure~\ref{fig:align}, left); for embeddings, linear CKA before mapping.}
+\end{table}
