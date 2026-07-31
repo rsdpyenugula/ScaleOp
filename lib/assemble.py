@@ -107,8 +107,12 @@ def build_model(W: dict, small_key: str, *, ln_source: str = "small", device=Non
                 blk.input_layernorm.bias.copy_(W[(l, "LN1_B")])
                 blk.post_attention_layernorm.weight.copy_(W[(l, "LN2_W")])
                 blk.post_attention_layernorm.bias.copy_(W[(l, "LN2_B")])
-        model.gpt_neox.embed_in.weight.copy_(W[(-1, "EMB_IN")])
-        model.lm_head.weight.copy_(W[(-1, "EMB_OUT")])
+        # Pythia pads vocab differently per size (6.9B: 50432, smaller: 50304);
+        # the real tokens (first 50254 rows) are identical — slice to target.
+        vocab = model.gpt_neox.embed_in.weight.shape[0]
+        assert W[(-1, "EMB_IN")].shape[0] >= vocab, "donor vocab smaller than target"
+        model.gpt_neox.embed_in.weight.copy_(W[(-1, "EMB_IN")][:vocab])
+        model.lm_head.weight.copy_(W[(-1, "EMB_OUT")][:vocab])
         if ln_source == "project":
             model.gpt_neox.final_layer_norm.weight.copy_(W[(-1, "LNF_W")])
             model.gpt_neox.final_layer_norm.bias.copy_(W[(-1, "LNF_B")])
