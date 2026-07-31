@@ -53,15 +53,15 @@ def build_init(arm, cfg, device):
     WL = {k: v.to(device) for k, v in WL.items()}
 
     spec_L, spec = resolve_spec(cfg["large"]), resolve_spec(small)
-    if arm in ("subclone", "hybrid"):
+    if arm in ("subclone", "subclone_rs", "hybrid"):
         res_idx = subclone.residual_selection(cfg["large"], spec.d_model)
         stride = spec_L.layers // spec.layers
         kw = dict(heads=spec_L.heads, head_dim_small=spec.d_model // spec.heads,
                   mlp_small=4 * spec.d_model, rotary_pct=rotary_pct,
                   heads_small=spec.heads if spec.heads != spec_L.heads else None,
                   keep_blocks=list(range(0, spec_L.layers, stride))[:spec.layers] if stride > 1 else None)
-        if arm == "subclone":
-            W = subclone.subclone_weights(WL, res_idx, **kw)
+        if arm.startswith("subclone"):
+            W = subclone.subclone_weights(WL, res_idx, rescale=(arm == "subclone_rs"), **kw)
         else:
             W = subclone.hybrid_weights(WL, res_idx, moments, **kw)
             del moments
@@ -86,7 +86,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/m5.yaml")
     ap.add_argument("--init", required=True,
-                    choices=["subclone", "projection", "random", "hybrid"])
+                    choices=["subclone", "subclone_rs", "projection", "random", "hybrid"])
     ap.add_argument("--seed", type=int, default=None, help="override config seed; also offsets the data draw")
     ap.add_argument("--tag", default="", help="suffix for run name + checkpoint (multi-pair/seed runs)")
     args = ap.parse_args()
