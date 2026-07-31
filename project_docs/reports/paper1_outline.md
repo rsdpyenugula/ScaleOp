@@ -79,7 +79,8 @@ hardening: extended-eval table (ordering holds on C4/ctx-2048/4 tasks; M5.md),
 100M persistence (hybrid 62.3 vs subclone 103.1; ~2.6× token efficiency),
 unseen pair ×3 seeds (hybrid 113.2±4.5 ≈ subclone 118.5±3.3, both ~13× over
 random 1505±58 — the width-vs-depth compensation boundary). Compute accounting
-incl. init costs (~0). [PENDING: 100M spot-check on the unseen-pair tie.]
+incl. init costs (~0). 100M spot-check: unseen-pair tie persists (77.1 vs
+74.4, leader flips between budgets ⇒ noise) — the boundary is budget-robust.
 
 ## 8. Limitations & future work (the citation-farm section — explicit invites)
 Single family (Pythia) → port to Llama/Qwen/DeepSeek/Kimi (adapter + per-arch
