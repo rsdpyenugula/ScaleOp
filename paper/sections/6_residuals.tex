@@ -4,105 +4,66 @@
 Section~\ref{sec:projection} shows that even the strongest shared linear operator
 explains at best $\sim$30\% of weight variance (relative error $0.66$--$0.80$),
 leaving the majority as a residual. Is that residual a structured, learnable
-correction --- or noise? We test it against matched
-controls, under the strongest-alignment condition so the verdict is
-conservative: if any signal survives the best linear map, these tests should find
-it.
-
-\paragraph{The residual under the strongest operator.}
-We define the residual per weight as
+correction --- or noise? We define the residual per weight as
 \begin{equation}
 \Delta(l,\text{type}) \;=\; W_{410\text{M}} \;-\; A\, W_{1.4\text{B}}\, B^{\top},
 \label{eq:delta}
 \end{equation}
 using the shared fitted operator $(A,B)$ per type --- the strongest-alignment
 condition of \S\ref{sec:projection}, so whatever remains is what no single linear
-size-map can explain. Four tests probe $\Delta$, each against a matched control.
+size-map can explain and the verdict is conservative: if any signal survives the
+best linear map, these tests should find it. Four tests probe $\Delta$, each
+against a matched control.
 
 \paragraph{Test 1 --- spectral (effective rank).}
-Table~\ref{tab:erank} compares the effective rank of $\Delta$ against a per-type
-shuffled control and a shape/scale-matched Gaussian control. $\Delta$ sits
-$2.8$--$6.4\%$ below both controls in every type: a \emph{faint} spectral
+App.~Table~\ref{tab:erank} compares the effective rank of $\Delta$ against a
+per-type shuffled control and a shape/scale-matched Gaussian control. $\Delta$
+sits $2.8$--$6.4\%$ below both controls in every type: a \emph{faint} spectral
 concentration, so the residual is not perfectly isotropic noise
-(Figure~\ref{fig:spectra}).
+(App.~Fig.~\ref{fig:spectra}).
 
 \paragraph{Test 2 --- cross-layer consistency.}
 The mean pairwise cosine of vectorized $\Delta$ across layers is
 $\approx\pm0.0002$ in every type, identical to the shuffle control: no direction
-is shared across layers, so there is no single correction the projection is
-uniformly missing.
+is shared across layers, so no single correction is uniformly missing.
 
 \paragraph{Test 3 --- learnability (decisive).}
 A patch predictor $R(\hat{W}\text{ patch} + \text{type/layer/position})
-\to \Delta\text{ patch}$ is trained on 18 layers and scored on 6 stratified
-held-out layers as error reduction over predicting zero; the control retrains
-identically on $\Delta$ shuffled across layers, and a 1000-sample bootstrap
-brackets the real$-$control gap. Neither a linear nor an MLP-512 predictor beats
-predicting zero (reductions $-0.0004$/$-0.0003$), and real and control are
-indistinguishable (gap CI$_{95}\approx[-0.0000,-0.0000]$, $p\ge0.99$;
-Table~\ref{tab:predictor}). There is no patch-learnable signal.
+\to \Delta\text{ patch}$ is trained on 18 layers, scored on 6 stratified held-out
+layers as error reduction over predicting zero; the control retrains on $\Delta$
+shuffled across layers, with a 1000-sample bootstrap on the real$-$control gap.
+Neither a linear nor an MLP-512 predictor beats zero (reductions
+$-0.0004$/$-0.0003$), and real and control are indistinguishable (gap
+CI$_{95}\approx[-0.0000,-0.0000]$, $p\ge0.99$; Table~\ref{tab:predictor}). No
+patch-learnable signal.
 
 \paragraph{Test 4 --- transfer.}
-On the held-out pair 410M$\,\to\,$160M the shared operators fit at relative error
-$0.56$--$0.74$ (better than the primary pair --- a smaller width gap). A predictor
-trained on all primary-pair layers and evaluated on the held-out pair reduces
-error by $-0.0004$/$-0.0003$, again indistinguishable from its shuffle control
-($p=1.00$; Table~\ref{tab:predictor}). Nothing transfers, consistent with
-Test~3.
+On the held-out 410M$\,\to\,$160M pair the shared operators fit at relative error
+$0.56$--$0.74$ (smaller width gap). A predictor trained on all primary-pair
+layers, evaluated on the held-out pair, reduces error by $-0.0004$/$-0.0003$,
+again indistinguishable from its shuffle control ($p=1.00$;
+Table~\ref{tab:predictor}). Nothing transfers, consistent with Test~3.
 
 \paragraph{Reconciling the faint spectral signal.}
-Tests 1 and 3 are not in tension. The $2.8$--$6.4\%$ spectral deficit is a
-\emph{generic} statistical trace --- mild row/column-norm heterogeneity, for
-instance --- not a correspondence between $\hat{W}$ and $\Delta$ that any
-predictor can exploit. A behavioral cross-check agrees: an assembled 410M whose
-six matrix types are operator-projected (with real biases, LayerNorms, and
-embeddings) scores $35{,}212$ perplexity, and the learned correction moves it
-only $\sim$2\% (to $34{,}373$); both remain non-functional. Notably the operator
-matrices alone beat random init ($35$k vs.\ $66$k) once the surrounding tensors
-are real --- unlike \S\ref{sec:projection}'s fully projected model --- which again
-locates the destruction in the dense projection, not the residual.%
-\footnote{The correction's gains on the 18 training layers are partly memorized;
-only the held-out layers carry genuine predictions, and there the reduction is
-zero.}
+Tests 1 and 3 are not in tension: the $2.8$--$6.4\%$ spectral deficit is a
+\emph{generic} statistical trace, not a predictor-exploitable correspondence, and
+a behavioral cross-check confirms the destruction lives in the dense projection,
+not the residual (Appendix~\ref{app:reconcile}).
 
 \paragraph{Handoff to \S\ref{sec:race}.}
-Within a model family the sizes share representation geometry but not parameter
-solutions, and what the best linear size-map misses behaves as noise: no
-cross-layer direction, no patch-learnable mapping, no cross-pair transfer, only a
-faint generic spectral fingerprint. A learned zero-shot correction is therefore
-not available at this granularity. Conversion value must instead come from
+Within a family the sizes share representation geometry but not parameter
+solutions, and what the best linear size-map misses behaves as noise (no
+cross-layer direction, no patch-learnable mapping, no cross-pair transfer; only a
+faint generic spectral fingerprint), so conversion value must come from
 \emph{initialization} plus brief fine-tuning --- the matched-budget recovery race
 of \S\ref{sec:race}.
-% TODO(owner): voice pass on this handoff; it is the paper's pivot from the
-% null result to the positive method.
 
-\begin{table}[t]
+\begin{table}[!htb]
 \centering
-\caption{Test 1 (spectral). Effective rank of the residual $\Delta$ vs.\ a
-per-type shuffled control and a shape/scale-matched Gaussian control. $\Delta$
-sits $2.8$--$6.4\%$ below both in every type --- a faint, non-isotropic
-concentration, not a learnable direction.}
-\label{tab:erank}
-\begin{tabular}{lccc}
-\toprule
-Weight & $\Delta$ erank & Shuffled & Gaussian \\
-\midrule
-$Q$            & 771.3 & 824.1 & 824.1 \\
-$K$            & 784.0 & 824.0 & 824.1 \\
-$V$            & 801.2 & 824.2 & 824.1 \\
-$O$            & 792.2 & 824.1 & 824.1 \\
-\texttt{MLP\_UP}   & 947.2 & 989.4 & 989.4 \\
-\texttt{MLP\_DOWN} & 934.8 & 989.4 & 989.4 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\centering
+\footnotesize
 \caption{Tests 3--4 (learnability and transfer). Patch-predictor error reduction
-over predicting zero, vs.\ a label-shuffled control; 1000-sample bootstrap CI on
-the real$-$control gap. No predictor beats zero, and none separates from its
-control.}
+over predicting zero vs.\ a label-shuffled control; 1000-sample bootstrap CI on
+the real$-$control gap. No predictor beats zero or separates from its control.}
 \label{tab:predictor}
 \begin{tabular}{llcccc}
 \toprule
@@ -120,14 +81,3 @@ Transfer (410M$\to$160M)        & linear  & $-0.0004$ & $-0.0004$ & --- & 1.00 \
 test reports $p$ (M4). Reductions are negative because no predictor improves on
 predicting zero.}
 \end{table}
-
-\begin{figure}[t]
-\centering
-% source: results/m4_residuals/*/delta_spectra.png (gitignored, regenerable)
-\includegraphics[width=0.6\linewidth]{figures/delta_spectra.png}
-\caption{Test 1 (spectral). Singular-value spectrum of the residual $\Delta$
-against shuffled and Gaussian controls. $\Delta$ concentrates $2.8$--$6.4\%$ more
-than either control in every weight type --- a faint, generic non-isotropy that
-carries no layer-specific, predictable signal (Table~\ref{tab:predictor}).}
-\label{fig:spectra}
-\end{figure}

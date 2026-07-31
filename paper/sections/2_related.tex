@@ -4,70 +4,63 @@
 \paragraph{Downscaling pretrained models.}
 The closest prior work is Weight Subcloning~\citep{samragh2023weight}, which
 initializes a smaller transformer by ranking units of a larger pretrained one,
-copying the selected rows and columns, and rescaling --- establishing that
-selection-based initialization accelerates training of the target size.
-Sheared LLaMA~\citep{xia2024sheared} learns structured pruning masks jointly
-with continued pre-training and produces strong small models at a fraction of
-from-scratch compute; it optimizes the full pipeline, whereas we hold the
-training recipe fixed across arms and isolate what the \emph{initialization}
-alone contributes. Our closed-form compensation belongs to the
-pruning-with-reconstruction lineage: adjusting surviving weights to absorb the
-function of removed ones dates to Optimal Brain
-Surgeon~\citep{hassibi1993optimal} and reappears in structured LLM pruning
-such as LLM-Pruner~\citep{ma2023llmpruner}; we apply the reconstruction step
-once, in closed form, at conversion time. Knowledge
-distillation~\citep{hinton2015distilling} transfers function through a
-teacher's outputs and requires a full training run; we study the complementary
-question of what transfers through \emph{weights} at negligible cost, and the
-two are combinable.
+copying selected rows and columns, and rescaling --- establishing that
+selection-based initialization accelerates training of the target size. Sheared
+LLaMA~\citep{xia2024sheared} learns structured pruning masks jointly with
+continued pre-training at a fraction of from-scratch compute; it optimizes the
+full pipeline, whereas we hold the training recipe fixed across arms and isolate
+what the \emph{initialization} alone contributes. Our closed-form compensation
+belongs to the pruning-with-reconstruction lineage --- adjusting surviving
+weights to absorb the function of removed ones, from Optimal Brain
+Surgeon~\citep{hassibi1993optimal} to structured LLM pruning like
+LLM-Pruner~\citep{ma2023llmpruner} --- applied once, in closed form, at conversion
+time. Knowledge distillation~\citep{hinton2015distilling} transfers function
+through a teacher's outputs and requires a full training run; we study the
+complementary question of what transfers through \emph{weights} at negligible
+cost, and the two are combinable.
 
 \paragraph{Growing pretrained models.}
-The mirror direction --- initializing a \emph{larger} model from a smaller
-one --- has a longer history: Net2Net~\citep{chen2016net2net} introduced
-function-preserving widening and deepening,
-bert2BERT~\citep{chen2022bert2bert} adapted it to transformers, staged
-training~\citep{shen2022staged} formalized growth operators that preserve loss
-and training dynamics, and LiGO~\citep{wang2023ligo} learns a structured
-linear map from the small model's weights to the large initialization. That
-linear operators carry useful signal upward is consistent with our finding
-that, downward, even a fitted dense projection initializes far better than
-random; the asymmetry we document is that dense basis mixing destroys the
-rotary, per-head, and normalization structure that selection preserves
+The mirror direction --- initializing a \emph{larger} model from a smaller one ---
+has a longer history: Net2Net~\citep{chen2016net2net} introduced
+function-preserving widening and deepening, bert2BERT~\citep{chen2022bert2bert}
+adapted it to transformers, staged training~\citep{shen2022staged} formalized
+growth operators that preserve loss and dynamics, and LiGO~\citep{wang2023ligo}
+learns a structured linear map from small weights to the large initialization.
+That linear operators carry useful signal upward is consistent with our finding
+that, downward, even a fitted dense projection initializes far better than random;
+the asymmetry we document is that dense basis mixing destroys the rotary,
+per-head, and normalization structure that selection preserves
 (\S\ref{sec:projection}).
 
 \paragraph{Representation similarity and parameter symmetries.}
 Our analyses use standard similarity tools:
 CKA~\citep{kornblith2019similarity} and SVCCA~\citep{raghu2017svcca} measure
-alignment between representations, and model
+representation alignment, and model
 stitching~\citep{lenc2015understanding,bansal2021revisiting} tests functional
-interchangeability through a trained adapter. Work on permutation symmetries
-and model merging~\citep{ainsworth2023git} shows that networks are naturally
-compared \emph{modulo} the transformations under which the architecture is
-invariant. Our selection-versus-blending result is an instance of the same
-principle: structured selection composes a permutation --- an element of the
-architecture's symmetry group, restricted to respect head boundaries and
-rotary frequency pairs~\citep{su2024roformer} --- with coordinate deletion,
-so every surviving unit keeps the exact nonlinear and positional semantics
-the architecture assigns it; dense projection mixes coordinates, exits the
-group, and is punished for it.
+interchangeability through a trained adapter. Work on permutation symmetries and
+model merging~\citep{ainsworth2023git} shows that networks are naturally compared
+\emph{modulo} the transformations under which the architecture is invariant. Our
+selection-versus-blending result is an instance of the same principle: structured
+selection composes a permutation --- an element of the architecture's symmetry
+group, restricted to respect head boundaries and rotary frequency
+pairs~\citep{su2024roformer} --- with coordinate deletion, so every surviving unit
+keeps the exact nonlinear and positional semantics the architecture assigns it;
+dense projection mixes coordinates, exits the group, and is punished for it.
 
 \paragraph{Positioning.}
 Each ingredient above exists in isolation: selection-based initialization,
-least-squares reconstruction, linear growth operators, and representation
-similarity analysis. What is new here is the \emph{setting} --- conversion
-between sizes of a single model family trained on identical data, removing
-data and tokenizer confounds --- together with rotary-frequency-matched
-selection and a controlled end-to-end characterization, from representation
-alignment through projection diagnosis and residual null tests to a
-matched-budget training race. Because our subcloning baseline re-implements
-the recipe of \citet{samragh2023weight}, we disclose three fidelity
-differences and label the baseline \emph{subcloning-style}: (a)~we score
-attention heads and MLP units by weight norms and residual lanes by
-activation variance, where they score by activation magnitudes; (b)~when
-depth must shrink we remove blocks at even stride rather than from the
-middle; and (c)~we evaluate their $\sqrt{d/d'}$ weight rescale directly
-rather than adopting it wholesale (\S\ref{sec:race}) --- applied to every
-matrix it collapses zero-shot quality because LayerNorm already renormalizes
-most read paths, while its variance-preserving motivation holds exactly on
-the projections no norm protects, the same two families our compensation
-re-fits.
+least-squares reconstruction, linear growth operators, representation similarity.
+What is new is the \emph{setting} --- conversion between sizes of a single family
+trained on identical data, removing data and tokenizer confounds --- together with
+rotary-frequency-matched selection and a controlled end-to-end characterization,
+from representation alignment through projection diagnosis and residual null tests
+to a matched-budget race. Because our subcloning baseline re-implements the recipe
+of \citet{samragh2023weight}, we disclose three fidelity differences and label it
+\emph{subcloning-style}: (a)~we score attention heads and MLP units by weight
+norms and residual lanes by activation variance, where they score by activation
+magnitudes; (b)~when depth must shrink we remove blocks at even stride rather than
+from the middle; and (c)~we evaluate their $\sqrt{d/d'}$ weight rescale directly
+rather than adopting it wholesale (\S\ref{sec:race}) --- applied to every matrix it
+collapses zero-shot quality because LayerNorm already renormalizes most read
+paths, while its variance-preserving motivation holds exactly on the projections
+no norm protects, the same two families our compensation re-fits.

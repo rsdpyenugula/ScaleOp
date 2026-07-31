@@ -9,6 +9,7 @@
 \usepackage{url}
 \usepackage{algorithm}
 \usepackage{algorithmic}
+\usepackage{wrapfig}
 
 % \iclrfinalcopy  % uncomment for camera-ready (de-anonymizes)
 
@@ -23,23 +24,22 @@
 \begin{abstract}
 Model families train every size from scratch. Can a pretrained large model be
 converted into a smaller sibling? We characterize the 1.4B$\to$410M conversion
-in the Pythia family end-to-end: (i)~representations align strongly across
-sizes (ridge $R^2=0.84$) while parameters align weakly; (ii)~dense weight
-projection is functionally destructive --- provably not an assembly artifact ---
-because basis mixing breaks rotary, per-head, GELU, and LayerNorm structure;
-(iii)~after the best-fit linear operator, weight residuals are statistically
-indistinguishable from noise under shuffle controls; (iv)~conversion value
-therefore lives in \emph{initialization}: in matched-budget continued
-pre-training we decompose conversion into two independent levers ---
-least-squares \textbf{compensation} (function: best zero-shot) and
-variance-preserving \textbf{rescale} (training dynamics: best endpoints) ---
-whose combination dominates the strongest subcloning variant on both axes and
-in every seed ($84.0\pm1.8$ vs.\ $89.7\pm3.7$ final perplexity, 3/3 paired
-wins; 18$\times$ better than from-scratch at 30M tokens). The ordering holds
-out-of-domain and at $2\times$ the training context, and the $\sim$13$\times$
-margin over from-scratch generalizes with three seeds to a held-out,
-depth-dominated pair --- where selection variants tie, mapping the boundary of
-compensation to the width-reduced regime. Code, checkpoints, and the frozen
+in the Pythia family end-to-end: (i)~representations align strongly across sizes
+(ridge $R^2=0.84$) while parameters align weakly; (ii)~dense weight projection is
+functionally destructive --- provably not an assembly artifact --- because basis
+mixing breaks rotary, per-head, GELU, and LayerNorm structure; (iii)~after the
+best-fit linear operator, weight residuals are statistically indistinguishable
+from noise under shuffle controls; (iv)~conversion value therefore lives in
+\emph{initialization}. In matched-budget continued pre-training we decompose
+conversion into two independent levers --- least-squares \textbf{compensation}
+(function: best zero-shot) and variance-preserving \textbf{rescale} (dynamics:
+best endpoints) --- whose combination dominates the strongest subcloning variant
+on both axes and every seed ($84.0\pm1.8$ vs.\ $89.7\pm3.7$ final perplexity, 3/3
+paired wins; 18$\times$ better than from-scratch at 30M tokens). The ordering
+holds out-of-domain and at $2\times$ the training context, and the
+$\sim$13$\times$ margin over from-scratch generalizes with three seeds to a
+held-out, depth-dominated pair where selection variants tie, mapping compensation's
+boundary to the width-reduced regime. Code, checkpoints, and the frozen
 evaluation corpus are released.
 \end{abstract}
 
@@ -58,5 +58,8 @@ evaluation corpus are released.
 
 \bibliography{references}
 \bibliographystyle{iclr2026_conference}
+
+\appendix
+\input{sections/appendix}
 
 \end{document}

@@ -3,82 +3,62 @@
 
 Transformer families ship as ladders of discrete sizes --- Pythia alone spans
 70M to 12B parameters~\citep{biderman2023pythia} --- because different
-deployment budgets need different models. Under current practice every rung
-is bought separately: each size is a full pretraining run with its own GPU
-and energy bill, even though the family members are trained on identical data
-with a shared tokenizer and architecture, differing only in width and depth.
-The siblings are, by construction, solutions to the same problem at different
-capacities; training each from nothing treats them as unrelated. This paper
-asks the question the ladder's cost makes practical and its construction
-makes tractable: \emph{what actually transfers between two sizes of the same
-pretrained model family --- and through what operation can it be carried into
-the smaller shape?}
+deployment budgets need different models. Under current practice every rung is
+bought separately: each size is a full pretraining run with its own GPU and
+energy bill, even though the family members are trained on identical data with a
+shared tokenizer and architecture, differing only in width and depth. The
+siblings are, by construction, solutions to the same problem at different
+capacities; training each from nothing treats them as unrelated. This paper asks
+the question the ladder's cost makes practical and its construction makes
+tractable: \emph{what actually transfers between two sizes of the same pretrained
+model family --- and through what operation can it be carried into the smaller
+shape?}
 
 We answer end-to-end on the Pythia suite, where identical data and tokenizer
-isolate size as the only variable (\S\ref{sec:setup}), in four controlled
-steps. First, we locate the cross-size relation by measuring alignment
-separately in representations and in parameters
-(\S\ref{sec:representations}): the smaller model's activations are largely a
-linear image of the larger model's (held-out ridge $R^2=0.84$), while its
-weights are not ($R^2=0.25$--$0.39$ even for embeddings, the cleanest case).
-Second, we diagnose why the natural exploit of that alignment --- densely
-projecting the large weights into the small shape --- is functionally
-destructive (\S\ref{sec:projection}): a bit-exact reconstruction control
-rules out assembly, leaving the projection mathematics itself, whose basis
-mixing breaks rotary, per-head, GELU, and LayerNorm structure --- blending
-destroys the wiring that structured selection preserves. Third, we test
-whether what the best-fit linear operator misses is a structured, learnable
-correction (\S\ref{sec:residuals}): under shuffle controls it is
-statistically indistinguishable from noise, so no zero-shot fix exists at
-this granularity. Conversion value must therefore live in
+isolate size as the only variable (\S\ref{sec:setup}), in four steps. First, we
+locate the cross-size relation (\S\ref{sec:representations}): the smaller model's
+activations are largely a linear image of the larger's (held-out ridge
+$R^2=0.84$), its weights are not. Second, we diagnose why densely projecting the
+large weights into the small shape is functionally destructive
+(\S\ref{sec:projection}): a bit-exact control rules out assembly, leaving the
+projection mathematics, whose basis mixing breaks rotary, per-head, GELU, and
+LayerNorm structure. Third, what the best-fit linear operator misses is
+indistinguishable from noise under shuffle controls (\S\ref{sec:residuals}), so
+no zero-shot fix exists. Conversion value must therefore live in
 \emph{initialization}, and the fourth step is a matched-budget recovery race
-(\S\ref{sec:race}): every candidate init is built without access to the
-target's weights and trained under identical data order, schedule, and token
-budget. The race decomposes conversion into two independent levers over
-structure-respecting selection --- closed-form least-squares
-\emph{compensation}, which repairs what the initial network computes, and
-variance-preserving \emph{rescale}, which repairs the scale the optimizer
-sees --- and shows that, because they act on disjoint weight paths, they
+(\S\ref{sec:race}) that decomposes conversion into two independent levers over
+structure-respecting selection --- closed-form least-squares \emph{compensation}
+(repairs what the network computes) and variance-preserving \emph{rescale}
+(repairs the scale the optimizer sees) --- which, acting on disjoint weight paths,
 stack.
 
 Our contributions are:
 \begin{itemize}
 \item \textbf{A controlled characterization of what transfers across sizes.}
   Within a family trained on identical data, representations align strongly
-  under a linear map (held-out ridge $R^2=0.84$) while parameters align
-  weakly ($R^2=0.25$--$0.39$ in the cleanest, embedding case) --- the gap the
-  rest of the paper pivots on (\S\ref{sec:representations}).
-\item \textbf{A mechanically verified diagnosis of why dense projection
-  fails.} Rebuilding the donor from its own extracted weights reproduces its
-  logits bit-exactly, so the projected model's collapse is attributable to
-  basis mixing alone: dense maps break rotary pairing, per-head attention,
-  elementwise GELU, and per-feature LayerNorm --- with the LayerNorm mismatch
-  isolated as the largest single factor (\S\ref{sec:projection}).
-\item \textbf{A null result under controls.} After the best-fit linear
-  operator, weight residuals carry no cross-layer direction, no
-  patch-learnable signal, and no cross-pair transfer (spectral, consistency,
-  learnability, and transfer tests against shuffle controls with bootstrap
-  confidence intervals, $p\ge0.99$): a learned zero-shot correction is not
-  available at this granularity (\S\ref{sec:residuals}).
-\item \textbf{A two-lever decomposition of conversion, and a method that
-  stacks them.} At matched budget, least-squares compensation is the
-  \emph{function} lever (best zero-shot) and variance-preserving rescale is
-  the \emph{training-dynamics} lever (best endpoints); their combination ---
+  under a linear map (held-out ridge $R^2=0.84$) while parameters align weakly
+  ($R^2=0.25$--$0.39$ in the cleanest, embedding case) --- the gap the rest of
+  the paper pivots on (\S\ref{sec:representations}).
+\item \textbf{A mechanically verified diagnosis of why dense projection fails.}
+  Rebuilding the donor from its own extracted weights reproduces its logits
+  bit-exactly, so the projected model's collapse is attributable to basis mixing
+  alone: dense maps break rotary pairing, per-head attention, elementwise GELU,
+  and per-feature LayerNorm --- LayerNorm the largest single factor
+  (\S\ref{sec:projection}).
+\item \textbf{A null result under controls.} After the best-fit linear operator,
+  weight residuals carry no cross-layer direction, no patch-learnable signal, and
+  no cross-pair transfer (spectral, consistency, learnability, transfer tests vs.\
+  shuffle controls with bootstrap CIs, $p\ge0.99$): no learned zero-shot
+  correction exists at this granularity (\S\ref{sec:residuals}).
+\item \textbf{A two-lever decomposition of conversion, and a method that stacks
+  them.} At matched budget, least-squares compensation is the \emph{function}
+  lever (best zero-shot) and variance-preserving rescale the
+  \emph{training-dynamics} lever (best endpoints); their combination ---
   Compensated Selection --- dominates the strongest variant of weight
   subcloning~\citep{samragh2023weight} on both axes and in every seed
-  ($84.0\pm1.8$ vs.\ $89.7\pm3.7$ final perplexity, 3/3 paired wins;
-  zero-shot $18.5$k vs.\ $61.9$k) and finishes 18$\times$ better than from
-  scratch at 30M tokens; the ordering holds out-of-domain and at $2\times$
-  the training context, and the margin over from scratch
-  ($\sim$13$\times$) generalizes with three seeds to a held-out
-  depth-dominated pair (\S\ref{sec:race}).
+  ($84.0\pm1.8$ vs.\ $89.7\pm3.7$ final perplexity, 3/3 paired wins; zero-shot
+  $18.5$k vs.\ $61.9$k) and finishes 18$\times$ better than from scratch at 30M
+  tokens; the ordering holds out-of-domain and at $2\times$ the training context,
+  and the margin over from scratch ($\sim$13$\times$) generalizes with three
+  seeds to a held-out depth-dominated pair (\S\ref{sec:race}).
 \end{itemize}
-% TODO(owner): "Compensated Selection" is the working method name
-% (\S\ref{sec:race:alg}); if renamed, change here and in Alg.~1 together.
-
-The paper reads as the argument above: \S\ref{sec:representations}
-establishes the representation--parameter gap, \S\ref{sec:projection}
-diagnoses dense projection, \S\ref{sec:residuals} closes the door on
-zero-shot residual correction, and \S\ref{sec:race} runs the conversion race
-and its hardening, with related work in \S\ref{sec:related}, the experimental
-setup in \S\ref{sec:setup}, and limitations in \S\ref{sec:limitations}.

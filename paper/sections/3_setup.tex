@@ -2,56 +2,43 @@
 \label{sec:setup}
 
 \paragraph{Model family and conversion pairs.}
-We study the Pythia suite~\citep{biderman2023pythia}: a family of GPT-NeoX
-models trained on identical data (the Pile) with a shared tokenizer, which
-isolates \emph{size} as the only variable between family members. Our primary
-pair converts \textbf{1.4B}$\,\to\,$\textbf{410M} (24 layers and 16 heads in
-both; only widths shrink: residual $2048\!\to\!1024$, head dim
-$128\!\to\!64$, MLP $8192\!\to\!4096$), so layer correspondence is trivially
-one-to-one and the analysis isolates width. A held-out pair,
-\textbf{410M}$\,\to\,$\textbf{160M}, exercises the axes the primary pair does
-not: depth halves ($24\!\to\!12$ blocks), the head \emph{count} drops
-($16\!\to\!12$; head dim unchanged), and width cuts are mild
-($\sim$25\%). A third pair, \textbf{6.9B}$\,\to\,$\textbf{1.4B}, tests scale
-(all three axes reduced; \S\ref{sec:race}).
-% TODO(owner): confirm final pair list once scale runs land.
+We study the Pythia suite~\citep{biderman2023pythia}: GPT-NeoX models trained on
+identical data (the Pile) with a shared tokenizer, isolating \emph{size} as the
+only variable between family members. Our primary pair converts
+\textbf{1.4B}$\,\to\,$\textbf{410M} (24 layers and 16 heads in both; only widths
+shrink: residual $2048\!\to\!1024$, head dim $128\!\to\!64$, MLP
+$8192\!\to\!4096$), so layer correspondence is one-to-one and the analysis
+isolates width. A held-out pair, \textbf{410M}$\,\to\,$\textbf{160M}, exercises
+the other axes: depth halves ($24\!\to\!12$ blocks), the head \emph{count} drops
+($16\!\to\!12$; head dim unchanged), and width cuts are mild ($\sim$25\%). A
+third pair, \textbf{6.9B}$\,\to\,$\textbf{1.4B}, tests scale (all three axes
+reduced; \S\ref{sec:race}).
 
 \paragraph{Frozen evaluation corpus.}
-All representation analyses probe every model with the \emph{same} inputs:
-10{,}000 sequences of 128 tokens drawn from the Pile
-(\texttt{pile-uncopyrighted}), tokenized once and frozen for the entire
-project. The first 500 sequences (all token positions) form the subset for
-similarity analysis (\S\ref{sec:representations}); the remainder contribute
-mean-pooled and last-token activations. Continued pre-training streams the
-same corpus but skips the region used to build the frozen set (a
-contamination guard), and each random seed trains on a disjoint stream
-offset.
+All representation analyses probe every model with the \emph{same} inputs: 10{,}000
+sequences of 128 tokens from the Pile (\texttt{pile-uncopyrighted}), tokenized
+once and frozen for the project. The first 500 sequences (all token positions)
+form the similarity subset (\S\ref{sec:representations}); the rest contribute
+mean-pooled and last-token activations. Continued pre-training streams the same
+corpus but skips the frozen-set region (contamination guard), and each seed
+trains on a disjoint stream offset.
 
 \paragraph{Behavioral evaluation.}
-Language-modeling quality is strided sliding-window perplexity on
-WikiText-103 validation (every token scored exactly once). Hardening
-evaluations add C4 perplexity (out-of-domain), perplexity at $2\times$ the
-training context (2048), and zero-shot accuracy on LAMBADA, ARC-Easy,
-HellaSwag, and PIQA via \texttt{lm-eval}. Reference models anchor every
-table; anchor scores match published Pythia numbers.
-
-\paragraph{Determinism and verification.}
-All forward passes are greedy and seeded; repeated runs are bit-identical on
-the same device. Weight extraction is validated by exact reconstruction: the
-fused GPT-NeoX QKV matrices are split head-aware and re-fused to bit-identical
-equality, and a model rebuilt from its own extracted weights reproduces the
-original logits with zero difference (\S\ref{sec:projection}) --- any quality
-change downstream is therefore attributable to conversion mathematics, not
-assembly.
+Language-modeling quality is strided sliding-window perplexity on WikiText-103
+validation (every token scored once). Hardening evaluations add C4 perplexity
+(out-of-domain), perplexity at $2\times$ the training context (2048), and
+zero-shot accuracy on LAMBADA, ARC-Easy, HellaSwag, and PIQA via
+\texttt{lm-eval}. Reference models anchor every table; anchor scores match
+published Pythia numbers. All forward passes are greedy and seeded, bit-identical
+on repetition; weight extraction is validated by exact reconstruction (head-aware
+QKV split/re-fuse to bit-identical equality; a model rebuilt from its own
+extracted weights reproduces the original logits with zero difference,
+\S\ref{sec:projection}), so downstream quality changes are attributable to
+conversion mathematics, not assembly.
 
 \paragraph{Training protocol.}
 Every conversion arm within an experiment shares \emph{identical} data order,
-optimizer (AdamW, $\beta=(0.9,0.95)$, weight decay $0.1$), cosine schedule
-with 100-step warmup, gradient clipping at $1.0$, bf16 autocast, and token
-budget (30M primary; 100M persistence checks); the learning rate equals the
-target size's original pretraining rate. Initialization construction costs
-are negligible against any training budget (selection: seconds; moments pass
-for compensation: $\sim$75\,s; closed-form solves: seconds) and are included
-in the compute accounting. All experiments ran on a single NVIDIA GB10
-(128\,GB unified memory); any 24\,GB+ CUDA GPU reproduces them
-(Appendix~TODO).
+optimizer, cosine schedule, and token budget, so within an experiment the only
+difference across arms is the starting weights; initialization construction is
+negligible against any training budget. Full hyperparameters, budgets, and
+hardware are in Appendix~\ref{app:protocol}.

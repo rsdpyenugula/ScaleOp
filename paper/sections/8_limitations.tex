@@ -2,58 +2,25 @@
 \label{sec:limitations}
 
 \paragraph{One family, one wiring.}
-All experiments are within the Pythia suite (GPT-NeoX blocks: LayerNorm,
-elementwise GELU, full multi-head attention with rotary embeddings). This is
-deliberate --- identical data and tokenizer isolate size --- but the two-lever
-decomposition leans on exactly those wiring details: which read paths a
-normalization fronts determines where compensation is well-posed and where
-rescale acts (\S\ref{sec:race:alg}). Llama- and Qwen-class models change the
-load-bearing parts --- RMSNorm in place of LayerNorm, gated SwiGLU MLPs whose
-hidden units couple \emph{two} input matrices, grouped-query attention that
-ties key/value heads across query heads --- so porting the method requires a
-per-architecture safe-wiring analysis (which units may be selected together;
-which paths a norm protects), not a mechanical re-run. The characterization
-tools themselves (alignment maps, shuffle controls, the matched-budget race)
-are architecture-agnostic.
+All experiments are within the Pythia suite (GPT-NeoX: LayerNorm, elementwise
+GELU, rotary attention) --- deliberate (identical data and tokenizer isolate
+size), but the two-lever decomposition leans on those wiring details: which paths
+a norm fronts sets where each lever is well-posed (\S\ref{sec:race:alg}).
+Llama-/Qwen-class models change the load-bearing parts (RMSNorm, gated SwiGLU,
+grouped-query attention), so porting needs a per-architecture safe-wiring
+analysis; the characterization tools are architecture-agnostic.
 
-\paragraph{Budgets far from convergence.}
-Our recovery budgets (30M tokens primary, 100M persistence) are $\sim$0.01\%
-of Pythia's 300B-token pretraining, and every converted model remains far
-from the real target's quality (best endpoint $83.0$ vs.\ the real 410M's
-$15.6$). All claims are therefore about \emph{relative recovery speed at
-matched budget}, not end quality; whether the orderings persist to full
-recovery is untested.
-
-\paragraph{Seed counts.}
-The decisive comparisons carry three data-draw seeds each (the seeded verdict
-of Table~\ref{tab:seeded}; the held-out pair of Table~\ref{tab:unseen}); the
-remaining ladder rungs, the 100M persistence checks, and the scale pair
-(\S\ref{sec:race:scale}) are single-seed. We report $\pm$ only where seeds
-exist and footnote every single-seed cell.
-
-\paragraph{Read-in compensation is unexplored.}
-Compensation is applied only where the reconstruction target is well-defined:
-the two LayerNorm-free read-out paths. On the LN-fronted read-in paths, the
-same renormalization that makes blanket rescale collapse zero-shot
-(\S\ref{sec:race:levers}) makes the least-squares target ill-defined --- the
-norm re-standardizes whatever the cut changes, so there is no fixed signal to
-reconstruct. Whether a normalization-aware compensation exists for these
-paths is open, and it is the most direct route to further improving the
-zero-shot axis.
-
-\paragraph{Depth is the uncompensable axis.}
-The held-out pair locates the method's boundary
-(\S\ref{sec:race:hardening}): compensation repairs width cuts because
-surviving units can absorb dropped ones, but a deleted block leaves no
-survivors to re-tune. Two directions follow naturally, and we have attempted
-neither: reduction-aware conversion that recovers deleted blocks' function
-into surviving neighbors (a distillation-flavored step), and choosing the
-width-versus-depth reduction mix for a given parameter budget --- our
-measured boundary suggests preferring width where the budget allows. We would
-welcome follow-up on both.
-% TODO(owner): voice pass --- the invitation tone ("we would welcome
-% follow-up") and the strength of the width-over-depth recommendation are
-% author calls.
-% TODO(owner): decide whether to name candidate target families explicitly
-% (Llama/Qwen) in the first paragraph or keep the architecture-feature
-% framing only.
+\paragraph{Budgets, seeds, and open directions.}
+Our recovery budgets (30M tokens primary, 100M persistence) are $\sim$0.01\% of
+Pythia's 300B-token pretraining, and every converted model remains far from the
+real target ($83.0$ vs.\ the real 410M's $15.6$); all claims are about
+\emph{relative recovery speed at matched budget}, not end quality. Decisive
+comparisons carry three data-draw seeds (App.~Tables~\ref{tab:seeded}
+and~\ref{tab:unseen}); remaining cells are single-seed. Two directions stay open.
+First, compensation touches only the two LN-free read-out paths; on the LN-fronted
+read-in paths the same renormalization that collapses blanket-rescale zero-shot
+(\S\ref{sec:race:levers}) makes the least-squares target ill-defined, so
+normalization-aware compensation there is open. Second, the held-out pair marks a
+harder boundary (\S\ref{sec:race:hardening}): compensation repairs width cuts but
+not deleted blocks; reduction-aware conversion and width-vs-depth budget
+allocation (our boundary favors width) are untried.
