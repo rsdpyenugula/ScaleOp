@@ -35,10 +35,12 @@ least-squares \textbf{compensation} (function: best zero-shot) and
 variance-preserving \textbf{rescale} (training dynamics: best endpoints) ---
 whose combination dominates the strongest subcloning variant on both axes and
 in every seed ($83.9\pm1.8$ vs.\ $89.7\pm3.7$ final perplexity, 3/3 paired
-wins; 18$\times$ better than from-scratch at 30M tokens), holding
-out-of-domain, at $2\times$ training context, and on a held-out
-depth-dominated pair (3 seeds). Code, checkpoints, and the frozen evaluation
-corpus are released.
+wins; 18$\times$ better than from-scratch at 30M tokens). The ordering holds
+out-of-domain and at $2\times$ the training context, and the $\sim$13$\times$
+margin over from-scratch generalizes with three seeds to a held-out,
+depth-dominated pair --- where selection variants tie, mapping the boundary of
+compensation to the width-reduced regime. Code, checkpoints, and the frozen
+evaluation corpus are released.
 \end{abstract}
 
 \input{sections/1_intro}
