@@ -8,7 +8,7 @@ small: "410m"
 
 tokens: 1000000000        # 1B
 seq_len: 1024
-batch_size: 32
+batch_size: 16            # sized for 40GB A100 (fp32 logits upcast OOMs at 32); arms share it, so still matched
 lr: 3.0e-4
 warmup_steps: 200
 weight_decay: 0.1

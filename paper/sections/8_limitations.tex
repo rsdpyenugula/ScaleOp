@@ -11,10 +11,11 @@ grouped-query attention), so porting needs a per-architecture safe-wiring
 analysis; the characterization tools are architecture-agnostic.
 
 \paragraph{Budgets, seeds, and open directions.}
-Our recovery budgets (30M tokens primary, 100M persistence) are $\sim$0.01\% of
-Pythia's 300B-token pretraining, and every converted model remains far from the
-real target ($83.0$ vs.\ the real 410M's $15.6$); all claims are about
-\emph{relative recovery speed at matched budget}, not end quality. Decisive
+Our recovery budgets (30M primary, 100M persistence, 1B convergence) span
+$\sim$0.01--0.3\% of Pythia's 300B-token pretraining; at 1B tokens converted
+models reach $40.2$ (vs.\ the real 410M's $\approx15.6$) --- much closer than at
+30M ($83.0$) but still short of full pretraining, so most claims concern
+\emph{relative recovery at matched budget} rather than end quality. Decisive
 comparisons carry three data-draw seeds (App.~Tables~\ref{tab:seeded}
 and~\ref{tab:unseen}); remaining cells are single-seed. Two directions stay open.
 First, compensation touches only the two LN-free read-out paths; on the LN-fronted
@@ -24,3 +25,17 @@ normalization-aware compensation there is open. Second, the held-out pair marks 
 harder boundary (\S\ref{sec:race:hardening}): compensation repairs width cuts but
 not deleted blocks; reduction-aware conversion and width-vs-depth budget
 allocation (our boundary favors width) are untried.
+
+\paragraph{Compensation conditioning at scale.}
+The two-lever stack, which dominates at low budget on both smaller pairs,
+\emph{over-corrects} on the 6.9B$\to$1.4B pair (\S\ref{sec:race:scale}): the
+least-squares compensation (Eq.~\ref{eq:lscomp}) inverts a second-moment matrix
+whose conditioning worsens with the kept width, and its magnitude-scaled ridge
+under-regularizes the low-variance directions at $8192$-wide inputs. A preliminary
+small-donor control at matched reduction ratios did not reproduce the effect,
+suggesting the cause is absolute scale rather than the reduction geometry. The
+direct remedy --- a spectrum- or
+dimension-aware ridge (setting $\lambda$ from the eigenvalue spread rather than the
+mean diagonal, or clamping the compensated-weight norm) --- is untested here and
+left to future work; until then, the robust single-lever \textsc{subclone\_rs} is
+the safe default at large donor scale.

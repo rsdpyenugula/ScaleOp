@@ -228,20 +228,24 @@ scratch is preserved on every seed.}
 \label{fig:m5bcurves}
 \end{figure}
 
-\subsection{Scale pair placeholder (\S\ref{sec:race:scale})}
+\subsection{Scale pair (\S\ref{sec:race:scale})}
 \label{app:scale}
 
 \begin{table}[h]
 \centering
-\caption{Scale pair (6.9B$\to$1.4B), matched budget. \emph{Runs in flight.}}
+\caption{Scale pair (6.9B$\to$1.4B), 30M tokens, single seed. The two levers that
+stack at smaller scale here \emph{anti}-synergize --- each alone beats the
+combination --- though every transfer arm still beats from scratch
+(\S\ref{sec:race:scale}).}
 \label{tab:scale}
-\begin{tabular}{lrr}
+\begin{tabular}{llr}
 \toprule
-Init & Zero-shot ppl & Final ppl (30M) \\
+Init & Construction & Final ppl (30M) \\
 \midrule
-random     & --- & --- \\
-subclone   & --- & --- \\
-hybrid\_rs & --- & --- \\
+random       & from scratch             & 1{,}413 \\
+hybrid\_rs   & compensation $+$ rescale & 1{,}213 \\
+hybrid       & compensation only        & 776 \\
+subclone\_rs & rescale only             & \textbf{572} \\
 \bottomrule
 \end{tabular}
 \end{table}

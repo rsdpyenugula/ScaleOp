@@ -104,8 +104,14 @@ predictor-vs-shuffle bars w/ CIs (regen from json) · transfer result ✓ ·
 m5_curves (4 runners) ✓ · [100M curves — pending] · [extended-eval table — pending]
 
 ## Release checklist
-Repo public + README quickstart; checkpoints (4×30M + 2×100M) to HF; frozen
-corpus recipe; `pip freeze`/uv.lock export; v0.1 tag (plan M6.3).
+- **BEFORE flipping repo public: delete the Paper-2 branches from origin**
+  (`paper2-anysize`, etc.). GitHub exposes ALL branches at once, so only `master`
+  (Paper 1) should be public — or split Paper 1 into a fresh public repo.
+- De-anonymize for arXiv (author/affiliation), drop line numbers, fill the
+  reproducibility statement.
+- Repo public + README quickstart; checkpoints (4×30M + 2×100M) to HF — the 1B
+  checkpoints were lost to the AWS fault, so 30M/100M are the release set;
+  frozen corpus recipe; `uv.lock` export; v0.1 tag.
 
 ## Style guide (extracted from the anchor papers' mechanics)
 

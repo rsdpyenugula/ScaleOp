@@ -11,8 +11,10 @@ budget, and continued pre-training reveals which starting weights convert
 fastest. The init decomposes into two \emph{independent} levers ---
 least-squares \textbf{compensation}, which fixes what the init \emph{computes}
 (best zero-shot), and variance-preserving \textbf{rescale}, which fixes the
-\emph{scale the optimizer sees} (best endpoints) --- and stacking both dominates
-the strongest single-lever variant on both axes and in every seed.
+\emph{scale the optimizer sees} (best endpoints). At a fixed low budget stacking
+both dominates the strongest single-lever variant on both axes and in every seed
+--- a token-efficiency edge that closes to parity at convergence, and inverts at
+the largest scale (\S\ref{sec:race:hardening},~\S\ref{sec:race:scale}).
 
 \paragraph{Protocol.}
 All arms share the target shape (410M), data order, optimizer, schedule, and
@@ -203,6 +205,16 @@ $\sim$38M tokens, a $\sim$$2.6\times$ token-efficiency gain.\footnote{100M cells
 are single-seed; cross-horizon comparisons are schedule-confounded (finals
 compared only within a horizon).}
 
+\paragraph{At convergence, the edge closes.}
+Pushing the primary pair to 1B tokens ($33\times$ the headline budget), the two
+rescale leaders finish level --- \textsc{hybrid\_rs} $40.2$ vs.\
+\textsc{subclone\_rs} $40.4$ --- both $\sim$$1.4\times$ ahead of from scratch
+($56.4$) and far nearer the real 410M ($\approx15.6$) than at 30M. Compensation's
+advantage is thus a low-budget, token-efficiency effect: it reaches a given
+quality with fewer tokens but is redundant with rescale once the budget is large,
+the two levers improving the same underlying conditioning so that at convergence
+one suffices.
+
 \paragraph{A held-out pair, and the method's boundary.}
 The 410M$\to$160M pair exercises axes the primary pair does not (depth-dominated:
 depth halves, head \emph{count} $16\to12$ with whole-head selection, mild width
@@ -210,7 +222,10 @@ cuts; \S\ref{sec:setup}). Across three seeds (final WikiText-103 perplexity at
 30M tokens: hybrid $113.2\pm4.5$, subclone $118.5\pm3.3$, random
 $1{,}505.2\pm57.9$; per-seed detail in App.~Table~\ref{tab:unseen}), transfer
 beats from scratch $\sim$$13\times$ on every seed --- the core claim generalizes,
-with error bars, to an untuned regime. But hybrid and subclone here \emph{tie}
+with error bars, to an untuned regime. The full stack keeps its low-budget edge
+here too: \textsc{hybrid\_rs} ($109.3$) beats \textsc{subclone\_rs} ($117.9$) on
+all three seeds. Compensation \emph{alone}, though, is neutral --- hybrid and
+subclone here \emph{tie}
 (overlapping $\pm1\sigma$), unlike the $3.1\times$ compensation gap on the width
 pair --- compensation's \emph{width}-repair edge is neutral when damage is
 depth-dominated (\S\ref{sec:limitations}), costing nothing here (zero-shot starts
@@ -220,12 +235,24 @@ noise, leader flipped) and holds on every other metric, with random far below an
 the real-160M anchor matching published Pythia numbers (single-seed;
 App.~\ref{app:unseen-metrics}).
 
-\subsection{Scale}
+\subsection{Scale, and the method's boundary}
 \label{sec:race:scale}
 
-The scale pair (6.9B$\to$1.4B) reduces all three axes at once, testing whether
-the levers hold an order of magnitude up; runs are in flight
-(App.~Table~\ref{tab:scale}).
+The scale pair (6.9B$\to$1.4B) reduces all three axes at once at $\sim$5$\times$
+the donor size (30M tokens; App.~Table~\ref{tab:scale}). Here the stack
+\emph{inverts}: rescale-only \textsc{subclone\_rs} is best ($572$),
+compensation-only \textsc{hybrid} next ($776$), and stacking both
+(\textsc{hybrid\_rs}, $1{,}213$) is worst among transfer arms --- though all still
+beat from scratch ($1{,}413$), so the core claim survives its worst case. Each
+lever alone is safe; only their combination over-corrects, and only at this scale.
+A \emph{preliminary} control --- converting a smaller (1.4B) donor to targets at
+the \emph{same} reduction ratios --- did \emph{not} reproduce the over-correction,
+suggesting the cause is \emph{absolute} scale rather than the reduction geometry:
+the compensation solve (Eq.~\ref{eq:lscomp}) inverts a far larger,
+worse-conditioned matrix at $8192$-wide inputs than in the smaller cases
+($\le4096$), which its magnitude-scaled ridge under-regularizes. A controlled
+study across donor scales, and the dimension-aware fix, are left to future work
+(\S\ref{sec:limitations}).
 
 \paragraph{Compute accounting.}
 Initialization construction is negligible and included in the accounting

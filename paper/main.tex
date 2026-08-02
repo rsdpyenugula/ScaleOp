@@ -11,12 +11,13 @@
 \usepackage{algorithmic}
 \usepackage{wrapfig}
 
-% \iclrfinalcopy  % uncomment for camera-ready (de-anonymizes)
+\iclrfinalcopy  % arXiv preprint: de-anonymized (real author), no line numbers.
+                % Re-comment for the double-blind ICLR/NeurIPS submission.
 
 \title{Wiring Beats Blending: What Transfers Between\\Transformer Sizes --- and What Doesn't}
 
-\author{Anonymous authors\\
-\texttt{(double-blind submission)}}
+\author{Ravi Satya Durga Prasad Yenugula\\
+\texttt{Independent Researcher}}
 
 \begin{document}
 \maketitle
@@ -33,13 +34,18 @@ from noise under shuffle controls; (iv)~conversion value therefore lives in
 \emph{initialization}. In matched-budget continued pre-training we decompose
 conversion into two independent levers --- least-squares \textbf{compensation}
 (function: best zero-shot) and variance-preserving \textbf{rescale} (dynamics:
-best endpoints) --- whose combination dominates the strongest subcloning variant
-on both axes and every seed ($84.0\pm1.8$ vs.\ $89.7\pm3.7$ final perplexity, 3/3
-paired wins; 18$\times$ better than from-scratch at 30M tokens). The ordering
-holds out-of-domain and at $2\times$ the training context, and the
-$\sim$13$\times$ margin over from-scratch generalizes with three seeds to a
-held-out, depth-dominated pair where selection variants tie, mapping compensation's
-boundary to the width-reduced regime. Code, checkpoints, and the frozen
+best endpoints). Compensation is a \emph{token-efficient, low-budget} win rather
+than a universal one: at 30M tokens it beats the strongest subcloning variant on
+both a width-reduced pair ($84.0\pm1.8$ vs.\ $89.7\pm3.7$, 3/3 seeds) and a
+held-out depth-reduced pair ($109.3$ vs.\ $117.9$, 3/3 seeds), reaching a given
+quality with fewer tokens; at a $33\times$ larger budget the two \emph{converge
+to parity} ($40.2$ vs.\ $40.4$), both far ahead of from-scratch, which transfer
+initialization always beats --- by up to $18\times$ at low budget, the margin
+narrowing at convergence and at the largest scale. We
+further \emph{map the method's boundary}: at $\sim$5$\times$ the donor scale
+(6.9B$\to$1.4B) stacking both levers over-corrects, which we trace to
+ill-conditioning of the compensation solve at large width, pointing to
+dimension-aware regularization as the fix. Code, checkpoints, and the frozen
 evaluation corpus are released.
 \end{abstract}
 
@@ -53,8 +59,17 @@ evaluation corpus are released.
 \input{sections/8_limitations}
 
 \subsubsection*{Reproducibility statement}
-% TODO: repo + HF links (public at camera-ready), uv.lock pinning, determinism
-% notes (bit-identical per-GPU), frozen-corpus recipe, all seeds/configs in repo.
+All experiments use the public Pythia suite and the
+\texttt{pile-uncopyrighted}, WikiText-103, and C4 corpora. Every result comes
+from a seeded, deterministic pipeline: weight extraction is validated by exact
+(bit-identical) reconstruction, forward passes are greedy and reproducible per
+device, and each reported comparison fixes data order, optimizer, schedule, and
+token budget across arms --- varying only the initialization. The frozen
+$10{,}000\times128$ evaluation corpus is built once from a recorded stream offset
+and contamination-guarded against the continued-pre-training stream; decisive
+comparisons report three data-draw seeds. The full code, all configs and seeds,
+the \texttt{uv.lock} environment pin, the frozen-corpus recipe, and the released
+checkpoints will be made publicly available upon publication.
 
 \bibliography{references}
 \bibliographystyle{iclr2026_conference}

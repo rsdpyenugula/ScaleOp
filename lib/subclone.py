@@ -119,8 +119,9 @@ def subclone_weights(WL: dict, res_idx: torch.Tensor, *, heads: int,
 
     rescale=True applies the reference recipe's √(d_in/d_in′) factor to each
     matrix whose INPUT axis was cut (preserves output std; arXiv:2312.09299).
-    Not applied to biases/LayerNorms/EMB_IN. The hybrid's LS compensation
-    subsumes this optimally for the matrices it re-fits.
+    Not applied to biases/LayerNorms/EMB_IN. Rescale is an INDEPENDENT
+    training-dynamics lever: it acts on the LN-fronted read-in paths that the LS
+    compensation does not re-fit, so the two stack (see the hybrid_rs arm).
     """
     res_idx = res_idx.to(next(iter(WL.values())).device)
     keep_blocks = keep_blocks or list(range(1 + max(l for l, _ in WL)))
