@@ -23,3 +23,7 @@ project_docs/results/*
 
 # Notebooks
 .ipynb_checkpoints/
+
+# Large model checkpoints (released via HF/release, not git)
+artifacts/
+*.pt
