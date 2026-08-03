@@ -1,0 +1,21 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We asked what actually transfers when a pretrained transformer is converted into a
+smaller sibling, and answered it in a controlled, single-family setting:
+representations align across sizes but parameters do not, dense weight projection
+is provably destructive because it breaks the architecture's load-bearing wiring,
+and after the best-fit linear operator the weight residuals are indistinguishable
+from noise. The value of a conversion therefore lives in \emph{initialization}, not
+in any learnable zero-shot weight correction. Decomposing that initialization into
+two independent levers --- least-squares \emph{compensation} (what the network
+computes) and variance-preserving \emph{rescale} (the scale the optimizer sees) ---
+lets us state the practical rule precisely: compensation is a token-efficient,
+low-budget win that stacks with rescale to dominate subcloning at small budgets on
+both a width- and a depth-reduced pair, ties it once the budget is large enough to
+converge, and, stacked, over-corrects only at the largest donor scale, where the
+compensation solve is ill-conditioned. For a practitioner spinning up a new size,
+the takeaway is concrete: initialize by structure-respecting selection, compensate
+and rescale on disjoint paths for a strong low-budget start, and fall back to the
+single robust rescale lever at large scale until a dimension-aware regularizer
+closes that gap.
