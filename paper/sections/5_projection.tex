@@ -17,10 +17,10 @@ Each weight is mapped by a pair of structured linear operators,
 P_{\bullet} \in \{\, P_{\text{res}},\, P_{QK},\, P_{VO},\, P_{\text{MLP}} \,\},
 \label{eq:project}
 \end{equation}
-whose bases are built \emph{only} from the large model and the size relationship,
+whose bases are built only from the large model and the size relationship,
 never from the 410M target. The residual axis uses a global activation-PCA basis
-$P_{\text{res}}$; internal axes use SVD bases \emph{shared between interacting
-weights} so composed operations stay consistent --- $Q,K$ share one, $V,O$ share
+$P_{\text{res}}$; internal axes use SVD bases shared between interacting
+weights so composed operations stay consistent: $Q,K$ share one, $V,O$ share
 one, and \texttt{MLP\_UP}/\texttt{MLP\_DOWN} share a joint basis from the column
 stack $[\mathrm{UP},\,\mathrm{DOWN}^{\top}]$. Sharing is not cosmetic: a
 per-weight basis for the MLP hidden axis cannot span the target, since one
@@ -30,8 +30,8 @@ be factorized together.
 \paragraph{The projected weights miss the target solution.}
 App.~Table~\ref{tab:proj} reports the relative Frobenius error of $\hat{W}$ against
 the actual 410M weights, mean over 24 layers, for the target-free projection of
-Eq.~\ref{eq:project} and --- as a diagnostic upper bound --- a shared operator
-$(A,B)$ \emph{fitted} with access to the target. Every target-free error exceeds
+Eq.~\ref{eq:project} and (as a diagnostic upper bound) a shared operator
+$(A,B)$ fitted with access to the target. Every target-free error exceeds
 $1$ (worse than predicting zero): the projected weights share almost nothing with
 the 410M's particular solution, confirming the activation-versus-weight gap of
 \S\ref{sec:representations} at every layer. Even the fitted operator only reaches
@@ -42,11 +42,11 @@ across sizes with one shared map.
 We assemble a 410M-shaped model from the projected 1.4B weights and score strided
 WikiText-103 perplexity against reference and anchor models
 (App.~Table~\ref{tab:anchor}). Greedy generation is deterministic but word salad, and
-the acceptance bar --- beat random init --- is not met zero-shot. The failure's
-\emph{shape} is instructive: random init produces near-uniform logits (perplexity
+the acceptance bar (beat random init) is not met zero-shot. The failure's
+shape is instructive: random init produces near-uniform logits (perplexity
 on the order of vocabulary size), whereas the projected model is confidently
 wrong, far worse than uniform. This is not a plumbing bug: rebuilding the 1.4B
-from its own extracted weights with \emph{no} projection reproduces the real
+from its own extracted weights with no projection reproduces the real
 model's logits with $\max|\text{diff}| = 0$ (bit-exact; previewed in
 \S\ref{sec:setup}), so the entire quality loss in App.~Table~\ref{tab:anchor} is
 attributable to Eq.~\ref{eq:project}, not to extraction, head-aware QKV
@@ -54,16 +54,16 @@ split/fuse, embeddings, or LayerNorm plumbing.
 
 \paragraph{Structure mixing breaks the computation.}
 A dense basis change on any internal axis silently changes what the block
-\emph{computes}, because every structured or nonlinear operation is tied to
-specific coordinates. \emph{Rotary embeddings} act on fixed per-head dimension
-pairs, so head-space mixing distorts positions. \emph{Attention is per-head}, yet
-our global $2048\!\to\!1024$ head-space basis mixes dimensions \emph{across}
-heads. \emph{GELU is elementwise} in the MLP hidden space, so
-$\mathrm{GELU}(Bx)\neq B\,\mathrm{GELU}(x)$. \emph{LayerNorm gains and biases are
-per-feature}, so a rotated stream no longer matches any diagonal gain --- which is
+computes, because every structured or nonlinear operation is tied to
+specific coordinates. Rotary embeddings act on fixed per-head dimension
+pairs, so head-space mixing distorts positions. Attention is per-head, yet
+our global $2048\!\to\!1024$ head-space basis mixes dimensions across
+heads. GELU is elementwise in the MLP hidden space, so
+$\mathrm{GELU}(Bx)\neq B\,\mathrm{GELU}(x)$. LayerNorm gains and biases are
+per-feature, so a rotated stream no longer matches any diagonal gain, which is
 why the projected-LN variant explodes to $10^{13}$. Function-preserving zero-shot
-conversion therefore needs structure-respecting \emph{selection} --- keep or drop
-whole heads, hidden units, and features (the architecture's own symmetry group)
---- not dense blending; dense projections are useful only as \emph{initializations}
+conversion therefore needs structure-respecting selection: keep or drop
+whole heads, hidden units, and features (the architecture's own symmetry group),
+not dense blending. Dense projections are useful only as initializations
 for brief fine-tuning (\S\ref{sec:race}).
 

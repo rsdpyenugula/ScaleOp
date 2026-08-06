@@ -4,12 +4,12 @@
 We asked what actually transfers when a pretrained transformer is converted into a
 smaller sibling, and answered it in a controlled, single-family setting:
 representations align across sizes but parameters do not, dense weight projection
-is provably destructive because it breaks the architecture's load-bearing wiring,
+is provably destructive because it breaks the architecture's essential wiring,
 and after the best-fit linear operator the weight residuals are indistinguishable
-from noise. The value of a conversion therefore lives in \emph{initialization}, not
+from noise. The value of a conversion therefore lives in initialization, not
 in any learnable zero-shot weight correction. Decomposing that initialization into
-two independent levers --- least-squares \emph{compensation} (what the network
-computes) and variance-preserving \emph{rescale} (the scale the optimizer sees) ---
+two independent levers, least-squares compensation (what the network
+computes) and variance-preserving rescale (the scale the optimizer sees),
 lets us state the practical rule precisely: compensation is a token-efficient,
 low-budget win that stacks with rescale to dominate subcloning at small budgets on
 both a width- and a depth-reduced pair, ties it once the budget is large enough to

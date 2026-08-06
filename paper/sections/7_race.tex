@@ -8,18 +8,18 @@ The characterization so far is diagnostic: representations align
 lives in \emph{initialization}, the decisive test is a matched-budget recovery
 race: every candidate gets the same target shape, data, schedule, and token
 budget, and continued pre-training reveals which starting weights convert
-fastest. The init decomposes into two \emph{independent} levers ---
-least-squares \textbf{compensation}, which fixes what the init \emph{computes}
+fastest. The init decomposes into two independent levers:
+least-squares \textbf{compensation}, which fixes what the init computes
 (best zero-shot), and variance-preserving \textbf{rescale}, which fixes the
-\emph{scale the optimizer sees} (best endpoints). At a fixed low budget stacking
-both dominates the strongest single-lever variant on both axes and in every seed
---- a token-efficiency edge that closes to parity at convergence, and inverts at
+scale the optimizer sees (best endpoints). At a fixed low budget stacking
+both dominates the strongest single-lever variant on both axes and in every seed,
+a token-efficiency edge that closes to parity at convergence and inverts at
 the largest scale (\S\ref{sec:race:hardening},~\S\ref{sec:race:scale}).
 
 \paragraph{Protocol.}
 All arms share the target shape (410M), data order, optimizer, schedule, and
 token budget; only the starting weights differ (\S\ref{sec:setup}). Crucially,
-\emph{every} init is obtainable without the trained target --- selection scores,
+every init is obtainable without the trained target: selection scores,
 compensation moments, and rescale factors are read off the donor 1.4B and the
 frozen corpus, so no arm leaks target weights. Zero-shot columns are quick-eval
 perplexity (50k WikiText tokens) at $t{=}0$; final columns are full strided
@@ -30,8 +30,8 @@ single-seed (footnoted).
 \label{sec:race:ladder}
 
 Table~\ref{tab:ladder} walks a seven-arm ladder from an untrained model to the
-full method. Top to bottom it is monotone in the endpoint --- each rung improves
-the final perplexity --- but the zero-shot column is emphatically \emph{not}
+full method. Top to bottom it is monotone in the endpoint (each rung improves
+the final perplexity), but the zero-shot column is emphatically not
 monotone, and that dissonance is the section's main result.
 
 \begin{table}[!htb]
@@ -70,7 +70,7 @@ measures \emph{relative} recovery speed).}
 \end{wrapfigure}
 Even bare structured selection (\textsc{subclone}, 355.8) recovers $4.3\times$
 faster than random (1{,}519.0) at matched compute, and dense projection
-(1{,}054.5) --- despite its scrambled wiring --- still beats from scratch
+(1{,}054.5), despite its scrambled wiring, still beats from scratch
 $1.4\times$. Selection preserves valid wiring (rotary pairing, per-head
 attention, elementwise GELU, per-feature LayerNorm) and pays off throughout
 training: \textsc{subclone} separates from \textsc{projection} immediately and
@@ -80,14 +80,14 @@ $1{,}519.0/83.0 = 18\times$ better than from scratch.
 \subsection{Two independent levers}
 \label{sec:race:levers}
 
-Reading the ladder by \emph{construction} exposes two orthogonal axes over the
+Reading the ladder by construction exposes two orthogonal axes over the
 selection base.
 
 \paragraph{Compensation is the function lever.}
 The hybrid re-fits the two purely-linear, LayerNorm-free read-out paths ($O$ and
 the MLP down-projection) by closed-form ridge least squares
 (\S\ref{sec:race:alg}), so surviving units absorb the dropped units' correlated
-contribution. This strictly improves \emph{both} axes: zero-shot
+contribution. This strictly improves both axes: zero-shot
 $11{,}509\to9{,}664$ (best in the table) and endpoint $355.8\to114.1$
 ($3.1\times$ over \textsc{subclone}). A better function is better everywhere.
 
@@ -95,22 +95,22 @@ $11{,}509\to9{,}664$ (best in the table) and endpoint $355.8\to114.1$
 The reference recipe's variance-preserving factor
 $\sqrt{d_{\text{in}}/d_{\text{in}}'}$ \citep{samragh2023weight} does the
 opposite. On the LayerNorm-free read-out paths only (\textsc{subclone\_iso}) it
-\emph{worsens} zero-shot $11{,}509\to26{,}669$ yet \emph{improves} the endpoint
+worsens zero-shot $11{,}509\to26{,}669$ yet improves the endpoint
 $355.8\to208.2$; on every input-cut path (\textsc{subclone\_rs}) it collapses
-zero-shot to $61{,}912$ --- $5.4\times$ worse than bare selection --- while
+zero-shot to $61{,}912$ ($5.4\times$ worse than bare selection) while
 driving the endpoint to $86.4$, past even the compensated hybrid. It does not fix
-the function --- a downstream LayerNorm renormalizes each rescaled read path, so
-the scalar cancels in the forward pass and merely perturbs zero-shot alignment ---
+the function (a downstream LayerNorm renormalizes each rescaled read path, so
+the scalar cancels in the forward pass and merely perturbs zero-shot alignment),
 but it fixes the variance the optimizer starts from, and along this axis the
 trade is monotone: more rescale, worse start, better endpoint.
 
 \paragraph{The levers stack.}
-The two levers act on disjoint quantities --- compensation on the function of the
+The two levers act on disjoint quantities: compensation on the function of the
 two LN-free read-out paths, rescale on the scale of the LN-fronted read-in paths
-($Q,K,V$, MLP up-projection, output embedding) --- so they compose.
+($Q,K,V$, MLP up-projection, output embedding), so they compose.
 \textsc{hybrid\_rs} applies compensation where it is ridge-optimal and the
 reference-recipe scale where compensation cannot reach, dominating the strongest
-single-lever arm (\textsc{subclone\_rs}) on \emph{both} axes: zero-shot
+single-lever arm (\textsc{subclone\_rs}) on both axes: zero-shot
 $18{,}459 < 61{,}912$ and endpoint $83.0 < 86.4$.
 
 \subsection{Seeded verdict}
@@ -120,8 +120,8 @@ The two rescale leaders are close on the single seed ($86.4$ vs.\ $83.0$), so we
 re-run both across three data-draw seeds. The separation is clean:
 \textsc{hybrid\_rs} ($84.0\pm1.8$ final WikiText-103 perplexity) wins every paired
 comparison against \textsc{subclone\_rs} ($89.7\pm3.7$) ($3/3$), and its
-\emph{worst} seed ($86.0$) still beats \textsc{subclone\_rs}'s \emph{best} seed
-($86.4$) --- the seed distributions do not overlap (per-seed detail in
+worst seed ($86.0$) still beats \textsc{subclone\_rs}'s best seed
+($86.4$), so the seed distributions do not overlap (per-seed detail in
 App.~Table~\ref{tab:seeded}).
 
 This upset (\textsc{subclone\_rs} at $86.4$ beating the compensation-only hybrid
@@ -138,7 +138,7 @@ in the listing). \emph{Selection} keeps whole coordinates so each subspace's
 symmetry survives: with rotary half-width $16\to8$ the small frequency ladder is
 exactly every other large frequency, so we keep rotary pairs at stride $2$ to
 preserve the $(\cos,\sin)$ pairing \citep{su2024roformer}. When the head
-\emph{count} shrinks (the held-out pair) selection is promoted to whole heads
+count shrinks (the held-out pair) selection is promoted to whole heads
 shared by $Q,K,V,O$; when depth shrinks, evenly strided blocks are kept with
 their norms and biases.
 
@@ -151,12 +151,12 @@ M' \;=\; \arg\min_{M'} \; \mathbb{E}\,\big\lVert Mx - M'x_{\mathcal{K}}\big\rVer
 \;=\; M\,\Sigma_{:,\mathcal{K}}\,\big(\Sigma_{\mathcal{K},\mathcal{K}} + \lambda I\big)^{-1},
 \end{equation}
 with plain subcloning as the special case $M'=M_{:,\mathcal{K}}$. We apply it at
-the two spots where the reconstruction target is well-defined --- $O$ and the MLP
-down-projection, both purely linear with no normalization between cut and read ---
+the two spots where the reconstruction target is well-defined ($O$ and the MLP
+down-projection, both purely linear with no normalization between cut and read),
 and leave the LN-fronted read-in paths to the optional rescale lever.
 Least-squares reconstruction after pruning is classical
 \citep{hassibi1993optimal,ma2023llmpruner}; new here are the setting (family
-\emph{size conversion}), the rotary-frequency-matched selection, and the two-lever
+size conversion), the rotary-frequency-matched selection, and the two-lever
 decomposition.
 
 \begin{algorithm}[!htb]
@@ -200,15 +200,15 @@ Pythia numbers.
 
 \paragraph{The lead persists at longer budget.}
 Re-running the two leaders at 100M tokens, hybrid finishes at $62.3$ and
-subclone at $103.1$; hybrid crosses subclone's \emph{100M} endpoint at
+subclone at $103.1$; hybrid crosses subclone's 100M endpoint at
 $\sim$38M tokens, a $\sim$$2.6\times$ token-efficiency gain.\footnote{100M cells
 are single-seed; cross-horizon comparisons are schedule-confounded (finals
 compared only within a horizon).}
 
 \paragraph{At convergence, the edge closes.}
 Pushing the primary pair to 1B tokens ($33\times$ the headline budget), the two
-rescale leaders finish level --- \textsc{hybrid\_rs} $40.0$ vs.\
-\textsc{subclone\_rs} $40.0$ (an exact tie) --- both $\sim$$1.4\times$ ahead of from scratch
+rescale leaders finish level: \textsc{hybrid\_rs} $40.0$ vs.\
+\textsc{subclone\_rs} $40.0$ (an exact tie), both $\sim$$1.4\times$ ahead of from scratch
 ($57.4$) and far nearer the real 410M ($\approx15.6$) than at 30M. Compensation's
 advantage is thus a low-budget, token-efficiency effect: it reaches a given
 quality with fewer tokens but is redundant with rescale once the budget is large,
@@ -221,13 +221,13 @@ depth halves, head \emph{count} $16\to12$ with whole-head selection, mild width
 cuts; \S\ref{sec:setup}). Across three seeds (final WikiText-103 perplexity at
 30M tokens: hybrid $113.2\pm4.5$, subclone $118.5\pm3.3$, random
 $1{,}505.2\pm57.9$; per-seed detail in App.~Table~\ref{tab:unseen}), transfer
-beats from scratch $\sim$$13\times$ on every seed --- the core claim generalizes,
+beats from scratch $\sim$$13\times$ on every seed, so the core claim generalizes,
 with error bars, to an untuned regime. The full stack keeps its low-budget edge
 here too: \textsc{hybrid\_rs} ($109.3$) beats \textsc{subclone\_rs} ($117.9$) on
-all three seeds. Compensation \emph{alone}, though, is neutral --- hybrid and
-subclone here \emph{tie}
+all three seeds. Compensation alone, though, is neutral: hybrid and
+subclone here tie
 (overlapping $\pm1\sigma$), unlike the $3.1\times$ compensation gap on the width
-pair --- compensation's \emph{width}-repair edge is neutral when damage is
+pair. Compensation's width-repair edge is neutral when damage is
 depth-dominated (\S\ref{sec:limitations}), costing nothing here (zero-shot starts
 at hybrid $\approx$30k vs.\ $9.7$k on the width pair). The tie is budget-robust
 (100M tokens, seed 0: hybrid $77.1$ vs.\ subclone $74.4$, a 3.6\% gap inside seed
@@ -242,12 +242,12 @@ The scale pair (6.9B$\to$1.4B) reduces all three axes at once at $\sim$5$\times$
 the donor size (30M tokens; App.~Table~\ref{tab:scale}). Here the stack
 \emph{inverts}: rescale-only \textsc{subclone\_rs} is best ($572$),
 compensation-only \textsc{hybrid} next ($776$), and stacking both
-(\textsc{hybrid\_rs}, $1{,}213$) is worst among transfer arms --- though all still
+(\textsc{hybrid\_rs}, $1{,}213$) is worst among transfer arms, though all still
 beat from scratch ($1{,}413$), so the core claim survives its worst case. Each
 lever alone is safe; only their combination over-corrects, and only at this scale.
-A \emph{preliminary} control --- converting a smaller (1.4B) donor to targets at
-the \emph{same} reduction ratios --- did \emph{not} reproduce the over-correction,
-suggesting the cause is \emph{absolute} scale rather than the reduction geometry:
+A preliminary control, converting a smaller (1.4B) donor to targets at
+the same reduction ratios, did not reproduce the over-correction,
+suggesting the cause is absolute scale rather than the reduction geometry:
 the compensation solve (Eq.~\ref{eq:lscomp}) inverts a far larger,
 worse-conditioned matrix at $8192$-wide inputs than in the smaller cases
 ($\le4096$), which its magnitude-scaled ridge under-regularizes. A controlled
@@ -258,7 +258,7 @@ study across donor scales, and the dimension-aware fix, are left to future work
 Initialization construction is negligible and included in the accounting
 (selection: norms plus top-$k$, seconds; compensation moments over 1{,}000
 frozen-corpus sequences, $\sim$75\,s; closed-form solves, seconds; rescale,
-free). Every arm then trains on the \emph{same} 30M tokens under the \emph{same}
+free). Every arm then trains on the same 30M tokens under the same
 schedule ($\sim$55\,min each on a single GB10 at $\sim$9.4k tok/s), so all
 standings
 (Table~\ref{tab:ladder}; App.~Table~\ref{tab:seeded}) compare equal-budget

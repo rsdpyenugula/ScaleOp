@@ -1,0 +1,23 @@
+# M5 + knowledge distillation — identical budget/schedule/data as m5.yaml, plus a
+# frozen 1.4B teacher queried each step. Used for the SP+distill / ours+distill
+# comparison arms (run with --init subclone_rs and --init hybrid_rs).
+seed: 0
+deterministic: true
+large: "1.4b"
+small: "410m"
+
+tokens: 30000000        # same budget as the no-distill baselines (apples-to-apples)
+seq_len: 1024
+batch_size: 32          # match m5.yaml; drop to 16 if the teacher forward OOMs
+lr: 3.0e-4
+warmup_steps: 100
+weight_decay: 0.1
+grad_clip: 1.0
+log_every_tokens: 2000000
+quick_eval_tokens: 50000
+skip_docs: 10000
+
+# distillation lever
+distill: true
+distill_T: 2.0          # softmax temperature
+distill_alpha: 0.5      # weight on CE vs KL: L = a*CE + (1-a)*T^2*KL

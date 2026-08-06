@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -105,8 +106,12 @@ def main() -> int:
     ap.add_argument("--tag", default="", help="suffix for run name + checkpoint (multi-pair/seed runs)")
     ap.add_argument("--resume", action="store_true",
                     help="resume from data/m5/ckpt/<init><tag>.pt if present (for long/interruptible runs)")
+    ap.add_argument("--distill", action="store_true",
+                    help="add a frozen-teacher (the large donor) KD loss; complements any init arm")
     args = ap.parse_args()
     cfg = load_config(args.config)
+    if args.distill:
+        cfg["distill"] = True
     if args.seed is not None:
         cfg["seed"] = args.seed
     # Seeds vary the data draw too (the pipeline is otherwise deterministic):
@@ -118,6 +123,15 @@ def main() -> int:
 
     model = build_init(args.init, cfg, dev)
     model.train()
+
+    # Optional knowledge-distillation lever: the donor is queried each step as a
+    # frozen teacher (a training-time channel, orthogonal to the init arm). Off
+    # by default; used only for the SP+distill / ours+distill comparison arms.
+    teacher, distill_T, distill_a = None, cfg.get("distill_T", 2.0), cfg.get("distill_alpha", 0.5)
+    if cfg.get("distill"):
+        teacher = load_model(cfg["large"], device=dev).eval()
+        teacher.requires_grad_(False)
+        print(f"[m5-{args.init}] distill ON (teacher={cfg['large']}, T={distill_T}, alpha={distill_a})", flush=True)
     quick = lambda: wikitext_perplexity(model.eval(), tok, device=dev,
                                         max_tokens=cfg["quick_eval_tokens"])
 
@@ -160,7 +174,17 @@ def main() -> int:
     for step, batch in enumerate(batches):
         batch = batch.to(dev)
         with torch.autocast(dev.type, dtype=torch.bfloat16):
-            loss = model(batch, labels=batch).loss
+            out = model(batch, labels=batch)
+            loss = out.loss
+            if teacher is not None:
+                with torch.no_grad():
+                    t_logits = teacher(batch).logits
+                # match next-token distributions (align with the CE label shift)
+                s = out.logits[:, :-1].float() / distill_T
+                t = t_logits[:, :-1].float() / distill_T
+                kd = F.kl_div(F.log_softmax(s, dim=-1), F.softmax(t, dim=-1),
+                              reduction="batchmean") * (distill_T ** 2)
+                loss = distill_a * loss + (1.0 - distill_a) * kd
         opt.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), cfg["grad_clip"])

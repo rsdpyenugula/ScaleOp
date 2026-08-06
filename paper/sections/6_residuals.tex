@@ -4,30 +4,30 @@
 Section~\ref{sec:projection} shows that even the strongest shared linear operator
 explains at best $\sim$30\% of weight variance (relative error $0.66$--$0.80$),
 leaving the majority as a residual. Is that residual a structured, learnable
-correction --- or noise? We define the residual per weight as
+correction, or noise? We define the residual per weight as
 \begin{equation}
 \Delta(l,\text{type}) \;=\; W_{410\text{M}} \;-\; A\, W_{1.4\text{B}}\, B^{\top},
 \label{eq:delta}
 \end{equation}
-using the shared fitted operator $(A,B)$ per type --- the strongest-alignment
+using the shared fitted operator $(A,B)$ per type, the strongest-alignment
 condition of \S\ref{sec:projection}, so whatever remains is what no single linear
 size-map can explain and the verdict is conservative: if any signal survives the
 best linear map, these tests should find it. Four tests probe $\Delta$, each
 against a matched control.
 
-\paragraph{Test 1 --- spectral (effective rank).}
+\paragraph{Test 1: spectral (effective rank).}
 App.~Table~\ref{tab:erank} compares the effective rank of $\Delta$ against a
 per-type shuffled control and a shape/scale-matched Gaussian control. $\Delta$
-sits $2.8$--$6.4\%$ below both controls in every type: a \emph{faint} spectral
+sits $2.8$--$6.4\%$ below both controls in every type: a faint spectral
 concentration, so the residual is not perfectly isotropic noise
 (App.~Fig.~\ref{fig:spectra}).
 
-\paragraph{Test 2 --- cross-layer consistency.}
+\paragraph{Test 2: cross-layer consistency.}
 The mean pairwise cosine of vectorized $\Delta$ across layers is
 $\approx\pm0.0002$ in every type, identical to the shuffle control: no direction
 is shared across layers, so no single correction is uniformly missing.
 
-\paragraph{Test 3 --- learnability (decisive).}
+\paragraph{Test 3: learnability (decisive).}
 A patch predictor $R(\hat{W}\text{ patch} + \text{type/layer/position})
 \to \Delta\text{ patch}$ is trained on 18 layers, scored on 6 stratified held-out
 layers as error reduction over predicting zero; the control retrains on $\Delta$
@@ -37,7 +37,7 @@ $-0.0004$/$-0.0003$), and real and control are indistinguishable (gap
 CI$_{95}\approx[-0.0000,-0.0000]$, $p\ge0.99$; Table~\ref{tab:predictor}). No
 patch-learnable signal.
 
-\paragraph{Test 4 --- transfer.}
+\paragraph{Test 4: transfer.}
 On the held-out 410M$\,\to\,$160M pair the shared operators fit at relative error
 $0.56$--$0.74$ (smaller width gap). A predictor trained on all primary-pair
 layers, evaluated on the held-out pair, reduces error by $-0.0004$/$-0.0003$,
@@ -46,7 +46,7 @@ Table~\ref{tab:predictor}). Nothing transfers, consistent with Test~3.
 
 \paragraph{Reconciling the faint spectral signal.}
 Tests 1 and 3 are not in tension: the $2.8$--$6.4\%$ spectral deficit is a
-\emph{generic} statistical trace, not a predictor-exploitable correspondence, and
+generic statistical trace, not a predictor-exploitable correspondence, and
 a behavioral cross-check confirms the destruction lives in the dense projection,
 not the residual (Appendix~\ref{app:reconcile}).
 
@@ -55,7 +55,7 @@ Within a family the sizes share representation geometry but not parameter
 solutions, and what the best linear size-map misses behaves as noise (no
 cross-layer direction, no patch-learnable mapping, no cross-pair transfer; only a
 faint generic spectral fingerprint), so conversion value must come from
-\emph{initialization} plus brief fine-tuning --- the matched-budget recovery race
+initialization plus brief fine-tuning, the matched-budget recovery race
 of \S\ref{sec:race}.
 
 \begin{table}[!htb]

@@ -2,7 +2,7 @@
 \label{sec:representations}
 
 A size conversion presupposes that the two family members are related; the
-question is \emph{where} the relation lives. On the primary width-only pair
+question is where the relation lives. On the primary width-only pair
 (1.4B$\,\to\,$410M, same depth and head count; \S\ref{sec:setup}) we measure
 the relation in the representations both models compute and in the parameters
 they store, and find it in only one.
@@ -11,9 +11,9 @@ they store, and find it in only one.
 Linear CKA between all $24\times24$ layer pairs (similarity subset, all token
 positions; \S\ref{sec:setup}) gives a diagonal mean of $0.883$, yet only
 $12.5\%$ of layers place their single best match on the diagonal. The heatmap is
-one large saturated block (App.~Fig.~\ref{fig:align}, left) --- layers 0--2
+one large saturated block (App.~Fig.~\ref{fig:align}, left): layers 0--2
 distinct, the middle band (layers $\sim$4--22) mutually $\approx1.0$, layer 23
-distinct --- so linear CKA confirms only \emph{coarse} early/mid/late
+distinct, so linear CKA confirms only coarse early/mid/late
 correspondence (saturation in the middle band is a known limitation of the
 metric). This motivates a directional map: how much of the small model's
 representation is a linear image of the large model's?
@@ -39,8 +39,8 @@ embedding and $0.386$ on the output embedding, against $0.844$ for activations.
 
 \paragraph{The representation--parameter gap.}
 Two independently trained family members reach closely related
-\emph{representations} while their \emph{parameters} are only loosely a linear
-map of one another. This gap is the paper's pivot: if representations align but
+representations while their parameters are only loosely a linear
+map of one another. This gap motivates the rest of the paper: if representations align but
 weights do not, projecting the large weights into the small shape
 (\S\ref{sec:projection}) must leave a substantial residual, and whether that
 residual is learnable or noise (\S\ref{sec:residuals}) decides where conversion
