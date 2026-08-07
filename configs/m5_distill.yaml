@@ -8,7 +8,8 @@ small: "410m"
 
 tokens: 30000000        # same budget as the no-distill baselines (apples-to-apples)
 seq_len: 1024
-batch_size: 32          # match m5.yaml; drop to 16 if the teacher forward OOMs
+batch_size: 16          # teacher forward + fp32 KD logits spike unified memory at 32;
+                        # 16 halves the per-step distill footprint (base arms stay at 32)
 lr: 3.0e-4
 warmup_steps: 100
 weight_decay: 0.1

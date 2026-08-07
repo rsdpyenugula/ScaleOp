@@ -9,10 +9,12 @@ energy bill, even though the family members are trained on identical data with a
 shared tokenizer and architecture, differing only in width and depth. Some
 recent work instead derives a smaller model from a larger one by structured
 pruning~\citep{xia2024sheared,ma2023llmpruner} and knowledge
-distillation~\citep{hinton2015distilling}, but these keep the donor in the loop:
+distillation~\citep{hinton2015distilling}, often combined into a single
+pipeline~\citep{muralidharan2024minitron}; but these keep the donor in the loop:
 the pruning mask is scored against it and the teacher is queried throughout
 training. We study the cheaper and less-explored channel in which the donor is
-used once, at initialization, and then discarded. The
+used once, at initialization, and then discarded, and we compare against the
+prune-plus-distill recipe at matched budget (\S\ref{sec:race}). The
 siblings are, by construction, solutions to the same problem at different
 capacities; training each from nothing treats them as unrelated. This paper asks
 the question the ladder's cost makes practical and its construction makes
