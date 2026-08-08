@@ -1,0 +1,15 @@
+_device: cuda
+batch_size: 32
+deterministic: true
+grad_clip: 1.0
+large: 1.4b
+log_every_tokens: 2000000
+lr: 0.0003
+quick_eval_tokens: 50000
+seed: 0
+seq_len: 1024
+skip_docs: 10000
+small: 410m
+tokens: 30000000
+warmup_steps: 100
+weight_decay: 0.1

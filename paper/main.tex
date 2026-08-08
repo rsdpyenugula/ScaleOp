@@ -45,8 +45,10 @@ $18\times$ at low budget, with the margin narrowing at convergence and at the
 largest scale. We also map the method's boundary. At about $5\times$ the donor
 scale (6.9B$\to$1.4B) stacking both levers over-corrects, consistent with
 ill-conditioning of the compensation solve at large width, which points to
-dimension-aware regularization as a fix. Code, checkpoints, and the frozen
-evaluation corpus are released.
+dimension-aware regularization as a fix. At matched budget our initialization
+also beats structured pruning with distillation, the standard pipeline for this
+task, and improves further when combined with it. Code, checkpoints, and the
+frozen evaluation corpus are released.
 \end{abstract}
 
 \input{sections/1_intro}

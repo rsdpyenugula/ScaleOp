@@ -1,0 +1,133 @@
+\begin{thebibliography}{17}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ainsworth et~al.(2023)Ainsworth, Hayase, and
+  Srinivasa]{ainsworth2023git}
+Samuel~K. Ainsworth, Jonathan Hayase, and Siddhartha Srinivasa.
+\newblock Git {Re-Basin}: Merging models modulo permutation symmetries.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2023.
+
+\bibitem[Bansal et~al.(2021)Bansal, Nakkiran, and Barak]{bansal2021revisiting}
+Yamini Bansal, Preetum Nakkiran, and Boaz Barak.
+\newblock Revisiting model stitching to compare neural representations.
+\newblock In \emph{Advances in Neural Information Processing Systems 34
+  (NeurIPS)}, 2021.
+
+\bibitem[Biderman et~al.(2023)Biderman, Schoelkopf, Anthony, Bradley, O'Brien,
+  Hallahan, Khan, Purohit, Prashanth, Raff, Skowron, Sutawika, and van~der
+  Wal]{biderman2023pythia}
+Stella Biderman, Hailey Schoelkopf, Quentin Anthony, Herbie Bradley, Kyle
+  O'Brien, Eric Hallahan, Mohammad~Aflah Khan, Shivanshu Purohit, USVSN~Sai
+  Prashanth, Edward Raff, Aviya Skowron, Lintang Sutawika, and Oskar van~der
+  Wal.
+\newblock Pythia: A suite for analyzing large language models across training
+  and scaling.
+\newblock In \emph{Proceedings of the 40th International Conference on Machine
+  Learning (ICML)}, pp.\  2397--2430. PMLR, 2023.
+
+\bibitem[Chen et~al.(2022)Chen, Yin, Shang, Jiang, Qin, Wang, Wang, Chen, Liu,
+  and Liu]{chen2022bert2bert}
+Cheng Chen, Yichun Yin, Lifeng Shang, Xin Jiang, Yujia Qin, Fengyu Wang, Zhi
+  Wang, Xiao Chen, Zhiyuan Liu, and Qun Liu.
+\newblock {bert2BERT}: Towards reusable pretrained language models.
+\newblock In \emph{Proceedings of the 60th Annual Meeting of the Association
+  for Computational Linguistics (ACL)}, 2022.
+
+\bibitem[Chen et~al.(2016)Chen, Goodfellow, and Shlens]{chen2016net2net}
+Tianqi Chen, Ian Goodfellow, and Jonathon Shlens.
+\newblock {Net2Net}: Accelerating learning via knowledge transfer.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2016.
+
+\bibitem[Hassibi \& Stork(1993)Hassibi and Stork]{hassibi1993optimal}
+Babak Hassibi and David~G. Stork.
+\newblock Second order derivatives for network pruning: Optimal brain surgeon.
+\newblock In \emph{Advances in Neural Information Processing Systems 5 (NIPS)},
+  pp.\  164--171, 1993.
+
+\bibitem[Hinton et~al.(2015)Hinton, Vinyals, and Dean]{hinton2015distilling}
+Geoffrey Hinton, Oriol Vinyals, and Jeff Dean.
+\newblock Distilling the knowledge in a neural network.
+\newblock \emph{arXiv preprint arXiv:1503.02531}, 2015.
+
+\bibitem[Kornblith et~al.(2019)Kornblith, Norouzi, Lee, and
+  Hinton]{kornblith2019similarity}
+Simon Kornblith, Mohammad Norouzi, Honglak Lee, and Geoffrey Hinton.
+\newblock Similarity of neural network representations revisited.
+\newblock In \emph{Proceedings of the 36th International Conference on Machine
+  Learning (ICML)}, pp.\  3519--3529. PMLR, 2019.
+
+\bibitem[Lenc \& Vedaldi(2015)Lenc and Vedaldi]{lenc2015understanding}
+Karel Lenc and Andrea Vedaldi.
+\newblock Understanding image representations by measuring their equivariance
+  and equivalence.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition (CVPR)}, pp.\  991--999, 2015.
+
+\bibitem[Ma et~al.(2023)Ma, Fang, and Wang]{ma2023llmpruner}
+Xinyin Ma, Gongfan Fang, and Xinchao Wang.
+\newblock {LLM-Pruner}: On the structural pruning of large language models.
+\newblock In \emph{Advances in Neural Information Processing Systems 36
+  (NeurIPS)}, 2023.
+
+\bibitem[Muralidharan et~al.(2024)Muralidharan, Sreenivas, Joshi, Chochowski,
+  Patwary, Shoeybi, Catanzaro, Kautz, and Molchanov]{muralidharan2024minitron}
+Saurav Muralidharan, Sharath~Turuvekere Sreenivas, Raviraj Joshi, Marcin
+  Chochowski, Mostofa Patwary, Mohammad Shoeybi, Bryan Catanzaro, Jan Kautz,
+  and Pavlo Molchanov.
+\newblock Compact language models via pruning and knowledge distillation.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2024.
+\newblock arXiv:2407.14679.
+
+\bibitem[Raghu et~al.(2017)Raghu, Gilmer, Yosinski, and
+  Sohl-Dickstein]{raghu2017svcca}
+Maithra Raghu, Justin Gilmer, Jason Yosinski, and Jascha Sohl-Dickstein.
+\newblock {SVCCA}: Singular vector canonical correlation analysis for deep
+  learning dynamics and interpretability.
+\newblock In \emph{Advances in Neural Information Processing Systems 30
+  (NeurIPS)}, 2017.
+
+\bibitem[Samragh et~al.(2023)Samragh, Farajtabar, Mehta, Vemulapalli, Faghri,
+  Naik, Tuzel, and Rastegari]{samragh2023weight}
+Mohammad Samragh, Mehrdad Farajtabar, Sachin Mehta, Raviteja Vemulapalli,
+  Fartash Faghri, Devang Naik, Oncel Tuzel, and Mohammad Rastegari.
+\newblock Weight subcloning: direct initialization of transformers using larger
+  pretrained ones.
+\newblock \emph{arXiv preprint arXiv:2312.09299}, 2023.
+
+\bibitem[Shen et~al.(2022)Shen, Walsh, Keutzer, Dodge, Peters, and
+  Beltagy]{shen2022staged}
+Sheng Shen, Pete Walsh, Kurt Keutzer, Jesse Dodge, Matthew Peters, and
+  Iz~Beltagy.
+\newblock Staged training for transformer language models.
+\newblock In \emph{Proceedings of the 39th International Conference on Machine
+  Learning (ICML)}, pp.\  19893--19908. PMLR, 2022.
+
+\bibitem[Su et~al.(2024)Su, Ahmed, Lu, Pan, Bo, and Liu]{su2024roformer}
+Jianlin Su, Murtadha Ahmed, Yu~Lu, Shengfeng Pan, Wen Bo, and Yunfeng Liu.
+\newblock {RoFormer}: Enhanced transformer with rotary position embedding.
+\newblock \emph{Neurocomputing}, 568:\penalty0 127063, 2024.
+
+\bibitem[Wang et~al.(2023)Wang, Panda, Torroba~Hennigen, Greengard, Karlinsky,
+  Feris, Cox, Wang, and Kim]{wang2023ligo}
+Peihao Wang, Rameswar Panda, Lucas Torroba~Hennigen, Philip Greengard, Leonid
+  Karlinsky, Rogerio Feris, David~D. Cox, Zhangyang Wang, and Yoon Kim.
+\newblock Learning to grow pretrained models for efficient transformer
+  training.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2023.
+
+\bibitem[Xia et~al.(2024)Xia, Gao, Zeng, and Chen]{xia2024sheared}
+Mengzhou Xia, Tianyu Gao, Zhiyuan Zeng, and Danqi Chen.
+\newblock Sheared {LLaMA}: Accelerating language model pre-training via
+  structured pruning.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2024.
+
+\end{thebibliography}

@@ -1,0 +1,16 @@
+# No-distill baseline at batch 16 — batch-matched control for the distill arms
+# (isolates distillation's effect from the batch-size change).
+seed: 0
+deterministic: true
+large: "1.4b"
+small: "410m"
+tokens: 30000000
+seq_len: 1024
+batch_size: 16
+lr: 3.0e-4
+warmup_steps: 100
+weight_decay: 0.1
+grad_clip: 1.0
+log_every_tokens: 2000000
+quick_eval_tokens: 50000
+skip_docs: 10000
