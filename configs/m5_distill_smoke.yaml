@@ -1,0 +1,21 @@
+# Tiny smoke of the distillation path: ~2 training steps to confirm the teacher
+# loads, the KD loss is finite, batch 32 fits, and tok/s is sane. Not a result.
+seed: 0
+deterministic: true
+large: "1.4b"
+small: "410m"
+
+tokens: 65536           # ~2 steps at batch 32, seq 1024
+seq_len: 1024
+batch_size: 32
+lr: 3.0e-4
+warmup_steps: 10
+weight_decay: 0.1
+grad_clip: 1.0
+log_every_tokens: 32768
+quick_eval_tokens: 20000
+skip_docs: 10000
+
+distill: true
+distill_T: 2.0
+distill_alpha: 0.5

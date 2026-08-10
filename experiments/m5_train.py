@@ -179,9 +179,11 @@ def main() -> int:
             if teacher is not None:
                 with torch.no_grad():
                     t_logits = teacher(batch).logits
-                # match next-token distributions (align with the CE label shift)
-                s = out.logits[:, :-1].float() / distill_T
-                t = t_logits[:, :-1].float() / distill_T
+                # match next-token distributions (align with the CE label shift);
+                # flatten tokens so batchmean averages per token, not per sequence
+                V = out.logits.size(-1)
+                s = out.logits[:, :-1].reshape(-1, V).float() / distill_T
+                t = t_logits[:, :-1].reshape(-1, V).float() / distill_T
                 kd = F.kl_div(F.log_softmax(s, dim=-1), F.softmax(t, dim=-1),
                               reduction="batchmean") * (distill_T ** 2)
                 loss = distill_a * loss + (1.0 - distill_a) * kd
