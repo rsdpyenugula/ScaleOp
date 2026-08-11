@@ -12,7 +12,8 @@ set -uo pipefail
 
 PROFILE="${AWS_PROFILE:-prod_admin}"
 REGION="us-east-1"
-INSTANCE_TYPE="p4de.24xlarge"        # 8x A100 80GB
+INSTANCE_TYPE="p4de.24xlarge"        # default; --types overrides
+TYPES="${TYPES:-}"                   # e.g. "p4de.24xlarge p5.48xlarge" (tried in order)
 KEY_NAME="de-aiml"
 SUBNETS="AUTO subnet-76344f2a subnet-1a595750"  # AUTO = let AWS place it (its own advice when
                                                # an AZ is short); then 1c, then 1b explicitly
@@ -25,6 +26,7 @@ while [ $# -gt 0 ]; do case "$1" in
   --profile) PROFILE="$2"; shift 2;;
   --region)  REGION="$2";  shift 2;;
   --type)    INSTANCE_TYPE="$2"; shift 2;;
+  --types)   TYPES="$2"; shift 2;;
   --bucket)  BUCKET="$2"; shift 2;;
   --spot)    SPOT=1; shift;;
   --dry-run) DRYRUN=1; shift;;
@@ -52,6 +54,8 @@ MAX_HOURS="${MAX_HOURS:-14}"
 USERDATA=$(printf '#!/bin/bash\nsetsid nohup bash -c "sleep %d; /sbin/shutdown -h now" >/dev/null 2>&1 &\n' $((MAX_HOURS*3600)) | base64)
 # p4de capacity is AZ-dependent and fluctuates; try each subnet until one succeeds.
 IID=""
+[ -n "$TYPES" ] || TYPES="$INSTANCE_TYPE"
+for INSTANCE_TYPE in $TYPES; do
 for SUBNET_ID in $SUBNETS; do
   echo "[aws] trying $INSTANCE_TYPE in ${SUBNET_ID} ..."
   PLACE=(--subnet-id "$SUBNET_ID" --security-group-ids "$SG_ID")
@@ -65,7 +69,9 @@ for SUBNET_ID in $SUBNETS; do
     --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=de-aiml-scaleop-12b69b},{Key=project,Value=scaleop}]' \
     --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":1000,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
     --query 'Instances[0].InstanceId' --output text 2>/tmp/ri_err) && break
-  echo "[aws] $SUBNET_ID unavailable: $(tr -d '\n' < /tmp/ri_err | tail -c 160)"; IID=""
+  echo "[aws] $INSTANCE_TYPE/$SUBNET_ID unavailable: $(tr -d '\n' < /tmp/ri_err | tail -c 130)"; IID=""
+done
+[ -n "$IID" ] && break
 done
 [ -n "$IID" ] || { echo "run-instances FAILED in all AZs (no p4de capacity right now)"; exit 1; }
 echo "[aws] launched $IID — will TERMINATE on exit"
