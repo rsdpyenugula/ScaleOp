@@ -15,9 +15,9 @@ REGION="us-east-1"
 INSTANCE_TYPE="p4de.24xlarge"        # default; --types overrides
 TYPES="${TYPES:-}"                   # e.g. "p4de.24xlarge p5.48xlarge" (tried in order)
 KEY_NAME="de-aiml"
-SUBNETS="AUTO subnet-76344f2a subnet-1a595750"  # AUTO = let AWS place it (its own advice when
+SUBNETS=""                           # resolved per region below
                                                # an AZ is short); then 1c, then 1b explicitly
-SG_ID="sg-071c7c61fab981eae"         # SSH from the launching IP only
+SG_ID=""                             # resolved per region below
 BUCKET="de-aiml-scaleop-662022802750"
 SPOT=0; DRYRUN=0
 AMI_NAME='Deep Learning OSS Nvidia Driver AMI GPU PyTorch*Ubuntu 22.04*'
@@ -37,9 +37,31 @@ AWS=(aws --profile "$PROFILE" --region "$REGION")
 PEM="$HOME/.ssh/${KEY_NAME}.pem"
 SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -i "$PEM")
 
-echo "[aws] profile=$PROFILE region=$REGION type=$INSTANCE_TYPE spot=$SPOT bucket=$BUCKET"
+echo "[aws] profile=$PROFILE region=$REGION spot=$SPOT bucket=$BUCKET"
+echo "[aws] type search: ${TYPES:-$INSTANCE_TYPE}"
 "${AWS[@]}" sts get-caller-identity >/dev/null || { echo "not authenticated: aws sso login --profile $PROFILE"; exit 1; }
 [ -f "$PEM" ] || { echo "missing private key $PEM"; exit 1; }
+
+# Network ids differ per region; resolve them (and create the SG if missing) so the
+# same script works in us-east-1, us-west-2, ... without editing hardcoded ids.
+if [ -z "$SUBNETS" ]; then
+  SUBNETS="AUTO $("${AWS[@]}" ec2 describe-subnets --filters Name=default-for-az,Values=true \
+    --query 'sort_by(Subnets,&AvailabilityZone)[].SubnetId' --output text | tr '\t' ' ')"
+fi
+if [ -z "$SG_ID" ]; then
+  SG_ID=$("${AWS[@]}" ec2 describe-security-groups --filters Name=group-name,Values=de-aiml-ssh \
+          --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null)
+  if [ "$SG_ID" = "None" ] || [ -z "$SG_ID" ]; then
+    VPC=$("${AWS[@]}" ec2 describe-vpcs --filters Name=isDefault,Values=true --query 'Vpcs[0].VpcId' --output text)
+    SG_ID=$("${AWS[@]}" ec2 create-security-group --group-name de-aiml-ssh \
+             --description "SSH for ScaleOp 12B to 6.9B screen" --vpc-id "$VPC" --query GroupId --output text)
+    MYIP=$(curl -s https://checkip.amazonaws.com)
+    "${AWS[@]}" ec2 authorize-security-group-ingress --group-id "$SG_ID" --protocol tcp --port 22 \
+      --cidr "${MYIP}/32" >/dev/null 2>&1
+    echo "[aws] created SG $SG_ID in $REGION (SSH from ${MYIP}/32)"
+  fi
+fi
+echo "[aws] SG=$SG_ID subnets=$(echo $SUBNETS | wc -w | tr -d ' ')"
 
 AMI=$("${AWS[@]}" ec2 describe-images --owners amazon \
   --filters "Name=name,Values=$AMI_NAME" "Name=state,Values=available" \
