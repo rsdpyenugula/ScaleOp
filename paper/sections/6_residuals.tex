@@ -58,26 +58,4 @@ faint generic spectral fingerprint), so conversion value must come from
 initialization plus brief fine-tuning, the matched-budget recovery race
 of \S\ref{sec:race}.
 
-\begin{table}[!htb]
-\centering
-\footnotesize
-\caption{Tests 3--4 (learnability and transfer). Patch-predictor error reduction
-over predicting zero vs.\ a label-shuffled control; 1000-sample bootstrap CI on
-the real$-$control gap. No predictor beats zero or separates from its control.}
-\label{tab:predictor}
-\begin{tabular}{llcccc}
-\toprule
-Setting & Predictor & Reduction & Shuffle & Gap CI$_{95}$ & $p$ \\
-\midrule
-Held-out layers (1.4B$\to$410M) & linear  & $-0.0004$ & $-0.0004$ & $[-0.0000,-0.0000]$ & 0.99 \\
-                                & MLP-512 & $-0.0003$ & $-0.0003$ & $[-0.0000,-0.0000]$ & 1.00 \\
-\midrule
-Transfer (410M$\to$160M)        & linear  & $-0.0004$ & $-0.0004$ & --- & 1.00 \\
-                                & MLP-512 & $-0.0003$ & $-0.0002$ & --- & 1.00 \\
-\bottomrule
-\end{tabular}
-\\[3pt]
-{\footnotesize CIs are reported for the in-pair held-out test only; the transfer
-test reports $p$ (M4). Reductions are negative because no predictor improves on
-predicting zero.}
-\end{table}
+\ificlrcompact\else\TabPredictor\fi  % deferred to appendix in the ICLR build

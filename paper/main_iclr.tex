@@ -1,0 +1,100 @@
+\documentclass{article}
+% ICLR 2027 double-blind SUBMISSION build. The arXiv build lives in main.tex.
+% NOTE: iclr2027_conference.{sty,bst} here are the 2026 files with the year
+% updated; replace them with the official ICLR 2027 template before submitting.
+\usepackage{iclr2027_conference,times}
+\usepackage{natbib}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{wrapfig}
+
+\newif\ificlrcompact\iclrcompacttrue   % ICLR: defer big floats to the appendix
+\input{sections/deferred_floats}
+
+% \iclrfinalcopy is intentionally OFF: anonymous authors + line numbers.
+
+\title{Wiring Beats Blending: What Transfers Between\\Transformer Sizes --- and What Doesn't}
+
+\author{Anonymous authors}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Model families are typically trained size by size, each from scratch. Can a
+pretrained large model instead be converted into a smaller sibling? We
+characterize the 1.4B$\to$410M conversion in the Pythia family end to end.
+Representations align strongly across sizes (ridge $R^2=0.84$) while parameters
+align weakly. Dense weight projection is functionally destructive, and a
+bit-exact reconstruction control shows this is not an assembly artifact: basis
+mixing breaks rotary, per-head, GELU, and LayerNorm structure. After the
+best-fit linear operator, weight residuals are statistically indistinguishable
+from noise under shuffle controls. Conversion value therefore lives in
+initialization. In matched-budget continued pre-training we decompose conversion
+into two independent levers: least-squares compensation, a function lever with
+the best zero-shot quality, and variance-preserving rescale, a dynamics lever
+with the best endpoints. Compensation is a token-efficient, low-budget win
+rather than a universal one. At 30M tokens it beats the strongest subcloning
+variant on both a width-reduced pair ($84.0\pm1.8$ vs.\ $89.7\pm3.7$, 3/3 seeds)
+and a held-out depth-reduced pair ($109.3$ vs.\ $117.9$, 3/3 seeds), reaching a
+given quality with fewer tokens. At a $33\times$ larger budget the two converge
+to parity ($40.0$ vs.\ $40.0$), both far ahead of from-scratch, which transfer
+initialization always beats: by up to $18\times$ at low budget, with the margin
+narrowing at convergence and at the largest scale. We also map the method's
+boundary. At about $5\times$ the donor scale (6.9B$\to$1.4B) stacking both levers
+over-corrects, consistent with ill-conditioning of the compensation solve at
+large width, which points to dimension-aware regularization as a fix. At matched
+budget our initialization also beats structured pruning with distillation, the
+standard pipeline for this task, and improves further when combined with it.
+Code, checkpoints, and the frozen evaluation corpus will be released.
+\end{abstract}
+
+\input{sections/1_intro}
+\input{sections/2_related}
+\input{sections/3_setup}
+\input{sections/4_representations}
+\input{sections/5_projection}
+\input{sections/6_residuals}
+\input{sections/7_race}
+\input{sections/9_conclusion}
+\input{sections/8_limitations}
+
+\subsubsection*{Reproducibility statement}
+All experiments use the public Pythia suite and the
+\texttt{pile-uncopyrighted}, WikiText-103, and C4 corpora. Every result comes
+from a seeded, deterministic pipeline: weight extraction is validated by exact
+(bit-identical) reconstruction, forward passes are greedy and reproducible per
+device, and each reported comparison fixes data order, optimizer, schedule, and
+token budget across arms, varying only the initialization. The frozen
+$10{,}000\times128$ evaluation corpus is built once from a recorded stream offset
+and contamination-guarded against the continued-pre-training stream; decisive
+comparisons report three data-draw seeds. Appendix~\ref{app:protocol} gives the
+optimizer, schedule, and budget for every arm. The full code, all configs and
+seeds, the environment pin, the frozen-corpus recipe, and the trained
+checkpoints will be released publicly on publication; they are omitted here to
+preserve anonymity.
+
+\subsubsection*{AI use statement}
+The author used a large language model (Anthropic's Claude, through the Claude
+Code interface) as an assistant in this work. Its uses were: implementing and
+debugging the experiment harness and evaluation scripts; operating training runs
+on the author's hardware under the author's direction; and drafting and revising
+the prose of this paper. The research questions, experimental design, choice of
+baselines and controls, and all claims are the author's. No text, number, or
+figure was accepted without checking: every reported quantity was verified
+against the run artifacts (logs, recorded perplexity curves, and saved
+checkpoints) that accompany the code release, and the author has reviewed all
+AI-assisted work and is solely responsible for its content.
+
+\bibliography{references}
+\bibliographystyle{iclr2027_conference}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}

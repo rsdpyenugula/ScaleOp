@@ -1,0 +1,51 @@
+% Floats inline in the arXiv build, deferred to the appendix in the page-limited
+% ICLR build. Defined once; placed by the \ificlrcompact flag.
+\newcommand{\AlgCompSel}{%
+\begin{algorithm}[!htb]
+\footnotesize
+\caption{Compensated Selection (\textsc{hybrid\_rs})}
+\label{alg:compsel}
+\begin{algorithmic}[1]
+\REQUIRE donor weights $W_L$; frozen-corpus activation variances and second
+moments $\Sigma$; target shape (residual $d'$, head dim, MLP width, block map)
+\ENSURE installable small-model weights (no target-model access)
+\STATE $\mathcal{R} \gets$ top-$d'$ residual features by mean-over-layer activation variance \COMMENT{one global basis}
+\FOR{each kept block $b$}
+  \STATE $\mathcal{K}_{qk} \gets$ frequency-matched rotary pairs (stride $2$) $\cup$ top non-rotary dims by $\lVert q\rVert{+}\lVert k\rVert$
+  \STATE $\mathcal{K}_{vo} \gets$ top head dims by $\lVert V_{\text{row}}\rVert\cdot\lVert O_{\text{col}}\rVert$ \COMMENT{whole heads if head count shrinks}
+  \STATE $\mathcal{K}_{mlp} \gets$ top units by $\lVert\text{up}_{\text{row}}\rVert\cdot\lVert\text{down}_{\text{col}}\rVert$
+  \STATE slice $W_L$ block $b$ to $(\mathcal{R},\mathcal{K}_{qk},\mathcal{K}_{vo},\mathcal{K}_{mlp})$; LayerNorms and biases ride along
+  \STATE $O' \gets \text{LScomp}(O,\,\Sigma_{\text{attn-in}},\,\mathcal{K}_{vo})$;\; $\text{MLP\_down}' \gets \text{LScomp}(\text{MLP\_down},\,\Sigma_{\text{mlp-in}},\,\mathcal{K}_{mlp})$ \COMMENT{Eq.~\ref{eq:lscomp}, function lever}
+  \IF{rescale}
+    \STATE multiply LN-fronted read-in paths $Q,K,V,\text{MLP\_up}$ (and output embedding) by $\sqrt{d_{\text{in}}/d_{\text{in}}'}$ \COMMENT{dynamics lever}
+  \ENDIF
+\ENDFOR
+\RETURN assembled small model
+\end{algorithmic}
+\end{algorithm}
+}
+\newcommand{\TabPredictor}{%
+\begin{table}[!htb]
+\centering
+\footnotesize
+\caption{Tests 3--4 (learnability and transfer). Patch-predictor error reduction
+over predicting zero vs.\ a label-shuffled control; 1000-sample bootstrap CI on
+the real$-$control gap. No predictor beats zero or separates from its control.}
+\label{tab:predictor}
+\begin{tabular}{llcccc}
+\toprule
+Setting & Predictor & Reduction & Shuffle & Gap CI$_{95}$ & $p$ \\
+\midrule
+Held-out layers (1.4B$\to$410M) & linear  & $-0.0004$ & $-0.0004$ & $[-0.0000,-0.0000]$ & 0.99 \\
+                                & MLP-512 & $-0.0003$ & $-0.0003$ & $[-0.0000,-0.0000]$ & 1.00 \\
+\midrule
+Transfer (410M$\to$160M)        & linear  & $-0.0004$ & $-0.0004$ & --- & 1.00 \\
+                                & MLP-512 & $-0.0003$ & $-0.0002$ & --- & 1.00 \\
+\bottomrule
+\end{tabular}
+\\[3pt]
+{\footnotesize CIs are reported for the in-pair held-out test only; the transfer
+test reports $p$ (M4). Reductions are negative because no predictor improves on
+predicting zero.}
+\end{table}
+}
