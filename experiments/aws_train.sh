@@ -46,6 +46,14 @@ echo "[aws_train] pre-fetching the 12B donor once (avoids an 8-way download race
 uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('EleutherAI/pythia-12b')" \
   > "$LOG/prefetch.log" 2>&1 || { echo "prefetch FAILED — see $LOG/prefetch.log"; exit 1; }
 
+launch2() {  # launch2 <gpu> <tag> <extra args...>  -- 12B->1.4B ablation config
+  local gpu=$1 tag=$2; shift 2
+  if grep -aq "FINAL full" "$LOG/$tag.log" 2>/dev/null; then echo "[aws_train] SKIP $tag (done)"; return; fi
+  echo "[aws_train] GPU$gpu <- $tag (12B->1.4B)"
+  CUDA_VISIBLE_DEVICES=$gpu nohup uv run python $M --config configs/m5_12b14b.yaml \
+    --ckpt-every 2000000 --resume "$@" --tag "_$tag" >> "$LOG/$tag.log" 2>&1 &
+}
+
 launch() {   # launch <gpu> <tag> <extra args...>
   local gpu=$1 tag=$2; shift 2
   if grep -aq "FINAL full" "$LOG/$tag.log" 2>/dev/null; then echo "[aws_train] SKIP $tag (done)"; return; fi
@@ -68,6 +76,17 @@ wait
 
 # --- wave 2: the trailing run ---
 launch 0 b69_ridge_s2 --init hybrid_rs --comp-reg ridge --seed 2
+wait
+
+# --- 12B->1.4B donor-scale ablation: same donor, 8192^2 solve. Cannot run on the
+# --- Spark (unified memory), so it rides along here where host RAM is separate.
+echo "[aws_train] 12B->1.4B ablation (3 arms x 3 seeds across the GPUs)"
+j=0
+for s in 0 1 2; do
+  launch2 $((j++)) d12_shrink_s$s --init hybrid_rs --comp-reg shrink --seed $s
+  launch2 $((j++)) d12_ridge_s$s  --init hybrid_rs --comp-reg ridge  --seed $s
+  launch2 $((j++)) d12_sub_s$s    --init subclone_rs                --seed $s
+done
 wait
 
 sync_up
