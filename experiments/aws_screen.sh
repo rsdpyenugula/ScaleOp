@@ -14,7 +14,8 @@ PROFILE="${AWS_PROFILE:-prod_admin}"
 REGION="us-east-1"
 INSTANCE_TYPE="p4de.24xlarge"        # 8x A100 80GB
 KEY_NAME="de-aiml"
-SUBNET_ID="subnet-1a595750"          # default subnet, us-east-1b (p4de is offered in 1b/1c)
+SUBNETS="AUTO subnet-76344f2a subnet-1a595750"  # AUTO = let AWS place it (its own advice when
+                                               # an AZ is short); then 1c, then 1b explicitly
 SG_ID="sg-071c7c61fab981eae"         # SSH from the launching IP only
 BUCKET="de-aiml-scaleop-662022802750"
 SPOT=0; DRYRUN=0
@@ -49,15 +50,24 @@ MARKET=(); [ "$SPOT" = 1 ] && MARKET=(--instance-market-options '{"MarketType":"
 # instance halts itself after MAX_HOURS and shutdown terminates it. Never bills unattended.
 MAX_HOURS="${MAX_HOURS:-14}"
 USERDATA=$(printf '#!/bin/bash\nsetsid nohup bash -c "sleep %d; /sbin/shutdown -h now" >/dev/null 2>&1 &\n' $((MAX_HOURS*3600)) | base64)
-IID=$("${AWS[@]}" ec2 run-instances --image-id "$AMI" --instance-type "$INSTANCE_TYPE" \
-  --key-name "$KEY_NAME" --subnet-id "$SUBNET_ID" --security-group-ids "$SG_ID" \
-  --associate-public-ip-address "${MARKET[@]}" --count 1 \
-  --iam-instance-profile "Name=de-aiml-s3" \
-  --instance-initiated-shutdown-behavior terminate \
-  --user-data "$USERDATA" \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=de-aiml-scaleop-12b69b},{Key=project,Value=scaleop}]' \
-  --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":1000,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
-  --query 'Instances[0].InstanceId' --output text) || { echo "run-instances FAILED"; exit 1; }
+# p4de capacity is AZ-dependent and fluctuates; try each subnet until one succeeds.
+IID=""
+for SUBNET_ID in $SUBNETS; do
+  echo "[aws] trying $INSTANCE_TYPE in ${SUBNET_ID} ..."
+  PLACE=(--subnet-id "$SUBNET_ID" --security-group-ids "$SG_ID")
+  [ "$SUBNET_ID" = AUTO ] && PLACE=(--security-group-ids "$SG_ID")   # no AZ pin: AWS chooses
+  IID=$("${AWS[@]}" ec2 run-instances --image-id "$AMI" --instance-type "$INSTANCE_TYPE" \
+    --key-name "$KEY_NAME" "${PLACE[@]}" \
+    --associate-public-ip-address ${MARKET[@]+"${MARKET[@]}"} --count 1 \
+    --iam-instance-profile "Name=de-aiml-s3" \
+    --instance-initiated-shutdown-behavior terminate \
+    --user-data "$USERDATA" \
+    --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=de-aiml-scaleop-12b69b},{Key=project,Value=scaleop}]' \
+    --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":1000,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
+    --query 'Instances[0].InstanceId' --output text 2>/tmp/ri_err) && break
+  echo "[aws] $SUBNET_ID unavailable: $(tr -d '\n' < /tmp/ri_err | tail -c 160)"; IID=""
+done
+[ -n "$IID" ] || { echo "run-instances FAILED in all AZs (no p4de capacity right now)"; exit 1; }
 echo "[aws] launched $IID — will TERMINATE on exit"
 cleanup(){ echo "[aws] terminating $IID"; "${AWS[@]}" ec2 terminate-instances --instance-ids "$IID" >/dev/null && echo "[aws] TERMINATED"; }
 trap cleanup EXIT INT TERM
