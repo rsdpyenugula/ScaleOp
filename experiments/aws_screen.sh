@@ -107,13 +107,35 @@ echo "[aws] $IID at $IP; waiting for sshd..."
 for i in $(seq 1 60); do ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'echo up' >/dev/null 2>&1 && break; sleep 15; done
 ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -2' || { echo "ssh failed"; exit 1; }
 
-# --- sync code (no data/, no git) and install uv ---
-rsync -az -e "ssh ${SSH_OPTS[*]}" --exclude data --exclude .git --exclude '*.pyc' \
-      --exclude paper --exclude paper2 --exclude project_docs/results ./ ubuntu@"$IP":scaleop/
+# --- ship the CODE BRANCH, not the working checkout ---
+# The experiment code lives on `paper2-a`; the main checkout is on master, whose
+# m5_train.py has none of the Paper-2 flags (--comp-reg/--ckpt-every/--lr/--optimizer).
+BRANCH="${BRANCH:-paper2-a}"
+STAGE=$(mktemp -d)
+git archive "$BRANCH" | tar -x -C "$STAGE" || { echo "git archive $BRANCH failed"; exit 1; }
+grep -q 'comp-reg' "$STAGE/experiments/m5_train.py" || { echo "FATAL: $BRANCH lacks --comp-reg; wrong branch"; exit 1; }
+echo "[aws] shipping branch $BRANCH ($(git rev-parse --short "$BRANCH"))"
+rsync -az -e "ssh ${SSH_OPTS[*]}" --exclude data --exclude '*.pyc' \
+      --exclude paper --exclude paper2 --exclude project_docs/results "$STAGE"/ ubuntu@"$IP":scaleop/
+rm -rf "$STAGE"
 ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh'
 
-# --- run the 9-arm screen (8 in parallel) ---
-ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'cd scaleop && export PATH=$HOME/.local/bin:$PATH && bash experiments/aws_train.sh' 2>&1 | tee aws_screen_run.log
+# --- run the 9-arm screen DETACHED, then poll (a multi-hour ssh session always drops) ---
+ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'cd scaleop && export PATH=$HOME/.local/bin:$PATH && \
+  rm -f aws_logs/TRAIN_DONE && setsid nohup bash experiments/aws_train.sh > aws_train_console.log 2>&1 < /dev/null & echo started'
+echo "[aws] detached; polling every 5 min (max ${MAX_HOURS}h)"
+for k in $(seq 1 $((MAX_HOURS*12))); do
+  sleep 300
+  st=$(ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'ls scaleop/aws_logs/TRAIN_DONE >/dev/null 2>&1 && echo DONE || pgrep -f "[m]5_train.py" >/dev/null && echo RUNNING || echo IDLE' 2>/dev/null)
+  case "$st" in
+    DONE)  echo "[aws] training complete"; break;;
+    IDLE)  echo "[aws] no trainers and no DONE marker — checking for a fast failure"; \
+           ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'tail -5 scaleop/aws_logs/b69_sub_s0.log 2>/dev/null'; break;;
+    *)     [ $((k % 12)) -eq 0 ] && ssh "${SSH_OPTS[@]}" ubuntu@"$IP" \
+             'grep -h "t=" scaleop/aws_logs/b69_*.log 2>/dev/null | tail -2' || true;;
+  esac
+done
+ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'cat scaleop/aws_train_console.log' > aws_screen_run.log 2>&1 || true
 
 # --- archive checkpoints to S3, pull results/logs locally ---
 echo "[aws] archiving checkpoints to s3://$BUCKET/12b69b/ ..."
