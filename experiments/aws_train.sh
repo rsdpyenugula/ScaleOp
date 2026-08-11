@@ -41,6 +41,13 @@ sync_down; ls -la data/m5/ckpt/ 2>/dev/null | tail -n +2 | awk '{print "  have",
 cleanup(){ kill $SYNCER $SPOTW 2>/dev/null; sync_up; }
 trap cleanup EXIT
 
+# Guard: the shipped tree must be the Paper-2 branch. Master's m5_train.py has none of
+# these flags, and every job dies instantly with "unrecognized arguments".
+for flag in comp-reg ckpt-every optimizer grad-checkpoint; do
+  grep -q -- "--$flag" "$M" || { echo "FATAL: $M lacks --$flag (wrong branch shipped)"; exit 1; }
+done
+echo "[aws_train] code check OK (Paper-2 flags present)"
+
 # one-time: warm the HF cache so 8 processes don't race the same 24GB download
 echo "[aws_train] pre-fetching the 12B donor once (avoids an 8-way download race)..."
 uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('EleutherAI/pythia-12b')" \
@@ -90,6 +97,7 @@ done
 wait
 
 sync_up
+touch "$LOG/TRAIN_DONE"      # the launcher polls for this instead of holding an ssh session
 echo "[aws_train] ALL DONE"
 for f in "$LOG"/b69_*.log; do
   printf "%-18s %s\n" "$(basename "$f" .log)" \
