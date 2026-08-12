@@ -61,6 +61,14 @@ if [ -z "$SG_ID" ]; then
     echo "[aws] created SG $SG_ID in $REGION (SSH from ${MYIP}/32)"
   fi
 fi
+# Keep SSH reachable when the launching network changes (home -> office -> hotspot): the SG
+# is pinned to specific /32s, so authorize the current IP if it is not already allowed.
+MYIP=$(curl -s --max-time 8 https://checkip.amazonaws.com)
+if [ -n "$MYIP" ] && ! "${AWS[@]}" ec2 describe-security-groups --group-ids "$SG_ID" \
+     --query 'SecurityGroups[0].IpPermissions[].IpRanges[].CidrIp' --output text 2>/dev/null | grep -q "$MYIP/32"; then
+  "${AWS[@]}" ec2 authorize-security-group-ingress --group-id "$SG_ID" --protocol tcp --port 22 \
+    --cidr "$MYIP/32" >/dev/null 2>&1 && echo "[aws] authorized SSH from $MYIP/32"
+fi
 echo "[aws] SG=$SG_ID subnets=$(echo $SUBNETS | wc -w | tr -d ' ')"
 
 AMI=$("${AWS[@]}" ec2 describe-images --owners amazon \
