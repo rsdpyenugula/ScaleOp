@@ -121,6 +121,14 @@ rm -rf "$STAGE"
 # The AWS runner scripts are infrastructure and live on the CURRENT branch (master), not in
 # the paper2-a archive -- ship them explicitly, else aws_train.sh is missing on the box.
 rsync -az -e "ssh ${SSH_OPTS[*]}" experiments/aws_train.sh ubuntu@"$IP":scaleop/experiments/
+# data/ is excluded above (it holds 21GB activation caches), but eval_tokens.pt (~10MB) is
+# required by both the activation-cache build and the moments pass -- ship it explicitly.
+if [ -s data/eval_tokens.pt ]; then
+  ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'mkdir -p scaleop/data'
+  rsync -az -e "ssh ${SSH_OPTS[*]}" data/eval_tokens.pt ubuntu@"$IP":scaleop/data/
+else
+  echo "[aws] WARNING: data/eval_tokens.pt not present locally; the box will not be able to build the cache"
+fi
 ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'test -s scaleop/experiments/aws_train.sh' \
   || { echo "FATAL: aws_train.sh missing on the instance"; exit 1; }
 ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh'
@@ -137,7 +145,9 @@ ssh "${SSH_OPTS[@]}" ubuntu@"$IP" "cd scaleop && export PATH=\$HOME/.local/bin:\
 echo "[aws] detached; polling every 5 min (max ${MAX_HOURS}h)"
 for k in $(seq 1 $((MAX_HOURS*12))); do
   sleep 300
-  st=$(ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'ls scaleop/aws_logs/TRAIN_DONE >/dev/null 2>&1 && echo DONE || pgrep -f "[m]5_train.py" >/dev/null && echo RUNNING || echo IDLE' 2>/dev/null)
+  # "busy" must include the runner itself and the one-time activation-cache build, not just
+  # trainers -- otherwise the box gets terminated during setup (this happened).
+  st=$(ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'ls scaleop/aws_logs/TRAIN_DONE >/dev/null 2>&1 && echo DONE || pgrep -f "aws_train.sh|[m]5_train.py|capture_and_cache" >/dev/null && echo RUNNING || echo IDLE' 2>/dev/null)
   case "$st" in
     DONE)  echo "[aws] training complete"; break;;
     IDLE)  echo "[aws] no trainers and no DONE marker — checking for a fast failure"; \
