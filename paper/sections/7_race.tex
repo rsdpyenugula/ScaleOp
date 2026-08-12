@@ -58,16 +58,17 @@ hybrid\_rs      & \quad$+$ compensation $+$ rescale   & 18{,}459       & \textbf
 \end{tabular}
 \end{table}
 
-\paragraph{Both transfer inits beat from scratch.}
-\begin{wrapfigure}{r}{0.34\linewidth}
+\begin{figure}[tb]
 \centering
-\includegraphics[width=\linewidth]{figures/m5_curves.png}
+\includegraphics[width=0.62\linewidth]{figures/m5_curves.png}
 \caption{\textbf{Recovery ladder (1.4B$\to$410M).} WikiText-103 perplexity (log
 scale) vs.\ tokens, seven arms of Table~\ref{tab:ladder} (dashed $=$ real
 Pythia-410M, $\approx15.6$; 30M tokens $=$ $\sim$0.01\% of pretraining, so this
-measures \emph{relative} recovery speed).}
+measures relative recovery speed).}
 \label{fig:m5curves}
-\end{wrapfigure}
+\end{figure}
+
+\paragraph{Both transfer inits beat from scratch.}
 Even bare structured selection (\textsc{subclone}, 355.8) recovers $4.3\times$
 faster than random (1{,}519.0) at matched compute, and dense projection
 (1{,}054.5), despite its scrambled wiring, still beats from scratch
