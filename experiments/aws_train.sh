@@ -55,16 +55,16 @@ for flag in comp-reg ckpt-every optimizer grad-checkpoint; do
 done
 echo "[aws_train] code check OK (Paper-2 flags present)"
 
-# one-time: warm the HF cache so 8 processes don't race the same 24GB download
-echo "[aws_train] pre-fetching the 12B donor once (avoids an 8-way download race)..."
-uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('EleutherAI/pythia-12b')" \
+DONOR=$(grep -E '^large:' "$CFG" | sed 's/.*"\(.*\)".*/\1/')
+# one-time: warm the HF cache so 8 processes don't race the same multi-GB download
+echo "[aws_train] pre-fetching donor $DONOR once (avoids an 8-way download race)..."
+uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('EleutherAI/pythia-$DONOR')" \
   > "$LOG/prefetch.log" 2>&1 || { echo "prefetch FAILED — see $LOG/prefetch.log"; exit 1; }
 
 # One-time: build the donor's activation cache. residual_selection() ranks which residual
 # dims to keep from data/activations/<donor>/mean_pooled.pt; that cache ships with the repo
 # for 6.9B and smaller but has never been built for 12B, so every arm dies with
 # FileNotFoundError: .../activations/12b/mean_pooled.pt. Build it once, before any run.
-DONOR=$(grep -E '^large:' "$CFG" | sed 's/.*"\(.*\)".*/\1/')
 if [ ! -s "data/activations/$DONOR/mean_pooled.pt" ]; then
   echo "[aws_train] building activation cache for donor $DONOR (one-time)..."
   uv run python -c "
