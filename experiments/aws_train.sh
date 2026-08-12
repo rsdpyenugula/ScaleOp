@@ -77,13 +77,38 @@ else
   echo "[aws_train] activation cache for $DONOR already present"
 fi
 
+# --- cross-instance claim/skip via S3 -------------------------------------------------
+# Local "FINAL full" checks only see THIS box's logs. With several boxes on one bucket we
+# also need a shared record, so each run claims a marker before starting and marks it done
+# on success. Claims are best-effort (no atomic put), which is fine: worst case is one
+# duplicated run, never a corrupted result -- each run still writes only its own object.
+S3CLAIM="s3://$BUCKET/$EXPT/claims"
+claimed()   { aws s3 ls "$S3CLAIM/$1.claim" >/dev/null 2>&1; }
+finished()  { aws s3 ls "$S3CLAIM/$1.done"  >/dev/null 2>&1; }
+claim()     { echo "$(hostname) $(date -Is)" | aws s3 cp - "$S3CLAIM/$1.claim" --only-show-errors 2>/dev/null; }
+mark_done() { echo "$(hostname) $(date -Is)" | aws s3 cp - "$S3CLAIM/$1.done"  --only-show-errors 2>/dev/null; }
+skip_run()  {           # true if some box already finished or is running this tag
+  grep -aq "FINAL full" "$LOG/$1.log" 2>/dev/null && return 0
+  finished "$1" && { echo "[aws_train] SKIP $1 (done on another box)"; return 0; }
+  claimed  "$1" && { echo "[aws_train] SKIP $1 (claimed by another box)"; return 0; }
+  return 1
+}
+
 TRAIN_PIDS=()          # only these are waited on; a bare `wait` would also block on the
                        # never-ending spot-interruption watcher and hang the runner forever
-wait_for_training() { [ ${#TRAIN_PIDS[@]} -gt 0 ] && wait "${TRAIN_PIDS[@]}" 2>/dev/null; TRAIN_PIDS=(); }
+wait_for_training() {
+  [ ${#TRAIN_PIDS[@]} -gt 0 ] && wait "${TRAIN_PIDS[@]}" 2>/dev/null; TRAIN_PIDS=()
+  for lg in "$LOG"/b69_*.log "$LOG"/d12_*.log; do            # publish what finished
+    [ -e "$lg" ] || continue
+    t=$(basename "$lg" .log)
+    grep -aq "FINAL full" "$lg" 2>/dev/null && ! finished "$t" && mark_done "$t"
+  done
+}
 
 launch2() {  # launch2 <gpu> <tag> <extra args...>  -- 12B->1.4B ablation config
   local gpu=$1 tag=$2; shift 2
-  if grep -aq "FINAL full" "$LOG/$tag.log" 2>/dev/null; then echo "[aws_train] SKIP $tag (done)"; return; fi
+  skip_run "$tag" && return
+  claim "$tag"
   echo "[aws_train] GPU$gpu <- $tag (12B->1.4B)"
   CUDA_VISIBLE_DEVICES=$gpu nohup uv run python $M --config configs/m5_12b14b.yaml \
     --ckpt-every 2000000 --resume --s3-ckpt "$S3CK" "$@" --tag "_$tag" >> "$LOG/$tag.log" 2>&1 &
@@ -92,7 +117,8 @@ launch2() {  # launch2 <gpu> <tag> <extra args...>  -- 12B->1.4B ablation config
 
 launch() {   # launch <gpu> <tag> <extra args...>
   local gpu=$1 tag=$2; shift 2
-  if grep -aq "FINAL full" "$LOG/$tag.log" 2>/dev/null; then echo "[aws_train] SKIP $tag (done)"; return; fi
+  skip_run "$tag" && return
+  claim "$tag"
   echo "[aws_train] GPU$gpu <- $tag"
   CUDA_VISIBLE_DEVICES=$gpu nohup uv run python $M $G "$@" --tag "_$tag" \
     >> "$LOG/$tag.log" 2>&1 &
