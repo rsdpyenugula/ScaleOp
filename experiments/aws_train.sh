@@ -13,18 +13,21 @@ M=experiments/m5_train.py
 CFG=${CFG:-configs/m5_12b69b.yaml}
 BUCKET=${BUCKET:-de-aiml-scaleop-662022802750}
 S3CK="s3://$BUCKET/12b69b/ckpt"
-G="--config $CFG --ckpt-every 2000000 --resume"
+# Which work THIS instance owns. Disjoint slices let several boxes run at once without
+# ever touching the same run: checkpoints are one S3 object per (arm,seed), written by
+# exactly one process. e.g. SEEDS="0 1" on box A, SEEDS="2" on box B.
+SEEDS=${SEEDS:-"0 1 2"}
+ARMS=${ARMS:-"sub shrink ridge"}
+DO_B69=${DO_B69:-1}      # 12B->6.9B screen
+DO_D12=${DO_D12:-1}      # 12B->1.4B ablation
+G="--config $CFG --ckpt-every 2000000 --resume --s3-ckpt $S3CK"
 
-sync_up()   { aws s3 sync data/m5/ckpt/ "$S3CK/" --only-show-errors 2>>"$LOG/s3.log"; }
-sync_down() { aws s3 sync "$S3CK/" data/m5/ckpt/ --only-show-errors 2>>"$LOG/s3.log"; }
-
-# --- restore any checkpoints from a previous (interrupted) attempt ---
-mkdir -p data/m5/ckpt
-echo "[aws_train] restoring checkpoints from $S3CK (if any)..."
-sync_down; ls -la data/m5/ckpt/ 2>/dev/null | tail -n +2 | awk '{print "  have", $NF, $5}' | head
-
-# --- background: mirror checkpoints every 10 min ---
-( while true; do sleep 600; sync_up; done ) & SYNCER=$!
+# m5_train.py pushes/pulls its OWN checkpoint object (--s3-ckpt), so there is no box-wide
+# sync to race: each run restores only its own state and writes only its own object.
+sync_up() { aws s3 sync data/m5/ckpt/ "$S3CK/" --only-show-errors 2>>"$LOG/s3.log"; }
+mkdir -p data/m5/ckpt aws_logs
+echo "[aws_train] per-run S3 checkpoints under $S3CK ; seeds='$SEEDS' arms='$ARMS'"
+SYNCER=""
 
 # --- background: spot interruption notice -> final flush, then let the box die ---
 ( TOK=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null)
@@ -38,7 +41,7 @@ sync_down; ls -la data/m5/ckpt/ 2>/dev/null | tail -n +2 | awk '{print "  have",
     sleep 5
   done ) & SPOTW=$!
 
-cleanup(){ kill $SYNCER $SPOTW 2>/dev/null; sync_up; }
+cleanup(){ kill ${SYNCER:-} $SPOTW 2>/dev/null; sync_up; }   # belt-and-braces final flush
 trap cleanup EXIT
 
 # Guard: the shipped tree must be the Paper-2 branch. Master's m5_train.py has none of
@@ -58,7 +61,7 @@ launch2() {  # launch2 <gpu> <tag> <extra args...>  -- 12B->1.4B ablation config
   if grep -aq "FINAL full" "$LOG/$tag.log" 2>/dev/null; then echo "[aws_train] SKIP $tag (done)"; return; fi
   echo "[aws_train] GPU$gpu <- $tag (12B->1.4B)"
   CUDA_VISIBLE_DEVICES=$gpu nohup uv run python $M --config configs/m5_12b14b.yaml \
-    --ckpt-every 2000000 --resume "$@" --tag "_$tag" >> "$LOG/$tag.log" 2>&1 &
+    --ckpt-every 2000000 --resume --s3-ckpt "$S3CK" "$@" --tag "_$tag" >> "$LOG/$tag.log" 2>&1 &
 }
 
 launch() {   # launch <gpu> <tag> <extra args...>
@@ -69,32 +72,38 @@ launch() {   # launch <gpu> <tag> <extra args...>
     >> "$LOG/$tag.log" 2>&1 &
 }
 
-# --- wave 1: 8 runs, one per GPU (3 arms x seeds 0,1 + 2 of seed 2) ---
+# --- 12B->6.9B screen: only this box's (arm,seed) slice, packed across its GPUs ---
 i=0
-for s in 0 1; do
-  launch $((i++)) b69_sub_s$s    --init subclone_rs                 --seed $s
-  launch $((i++)) b69_shrink_s$s --init hybrid_rs --comp-reg shrink --seed $s
-  launch $((i++)) b69_ridge_s$s  --init hybrid_rs --comp-reg ridge  --seed $s
-done
-launch $((i++)) b69_sub_s2    --init subclone_rs                 --seed 2
-launch $((i++)) b69_shrink_s2 --init hybrid_rs --comp-reg shrink --seed 2
-echo "[aws_train] wave 1: $i jobs launched; waiting..."
-wait
+if [ "$DO_B69" = 1 ]; then
+  for s_ in $SEEDS; do
+    for a in $ARMS; do
+      case $a in
+        sub)    launch $((i++)) b69_sub_s$s_    --init subclone_rs                 --seed $s_;;
+        shrink) launch $((i++)) b69_shrink_s$s_ --init hybrid_rs --comp-reg shrink --seed $s_;;
+        ridge)  launch $((i++)) b69_ridge_s$s_  --init hybrid_rs --comp-reg ridge  --seed $s_;;
+      esac
+      [ "$i" -ge 8 ] && { echo "[aws_train] 8 GPUs busy; waiting for this wave"; wait; i=0; }
+    done
+  done
+  wait
+fi
 
-# --- wave 2: the trailing run ---
-launch 0 b69_ridge_s2 --init hybrid_rs --comp-reg ridge --seed 2
-wait
-
-# --- 12B->1.4B donor-scale ablation: same donor, 8192^2 solve. Cannot run on the
-# --- Spark (unified memory), so it rides along here where host RAM is separate.
-echo "[aws_train] 12B->1.4B ablation (3 arms x 3 seeds across the GPUs)"
-j=0
-for s in 0 1 2; do
-  launch2 $((j++)) d12_shrink_s$s --init hybrid_rs --comp-reg shrink --seed $s
-  launch2 $((j++)) d12_ridge_s$s  --init hybrid_rs --comp-reg ridge  --seed $s
-  launch2 $((j++)) d12_sub_s$s    --init subclone_rs                --seed $s
-done
-wait
+# --- 12B->1.4B donor-scale ablation (same donor, 8192^2 solve) ---
+if [ "$DO_D12" = 1 ]; then
+  echo "[aws_train] 12B->1.4B ablation for seeds '$SEEDS'"
+  j=0
+  for s_ in $SEEDS; do
+    for a in $ARMS; do
+      case $a in
+        sub)    launch2 $((j++)) d12_sub_s$s_    --init subclone_rs                 --seed $s_;;
+        shrink) launch2 $((j++)) d12_shrink_s$s_ --init hybrid_rs --comp-reg shrink --seed $s_;;
+        ridge)  launch2 $((j++)) d12_ridge_s$s_  --init hybrid_rs --comp-reg ridge  --seed $s_;;
+      esac
+      [ "$j" -ge 8 ] && { wait; j=0; }
+    done
+  done
+  wait
+fi
 
 sync_up
 touch "$LOG/TRAIN_DONE"      # the launcher polls for this instead of holding an ssh session
