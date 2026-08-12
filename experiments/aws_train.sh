@@ -135,7 +135,7 @@ fi
 sync_up
 touch "$LOG/TRAIN_DONE"      # the launcher polls for this instead of holding an ssh session
 echo "[aws_train] ALL DONE"
-for f in "$LOG"/b69_*.log; do
+for f in "$LOG"/b69_*.log "$LOG"/d12_*.log; do
   printf "%-18s %s\n" "$(basename "$f" .log)" \
-    "$(grep -a 'FINAL full' "$f" 2>/dev/null | tail -1 | grep -oE 'ppl=[0-9.]+' || echo INCOMPLETE)"
+    "$(grep -a 'FINAL full' "$f" 2>/dev/null | tail -1 | sed 's/.*ppl=//; s/ .*//' || echo INCOMPLETE)"
 done
