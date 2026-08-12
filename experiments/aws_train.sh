@@ -77,12 +77,17 @@ else
   echo "[aws_train] activation cache for $DONOR already present"
 fi
 
+TRAIN_PIDS=()          # only these are waited on; a bare `wait` would also block on the
+                       # never-ending spot-interruption watcher and hang the runner forever
+wait_for_training() { [ ${#TRAIN_PIDS[@]} -gt 0 ] && wait "${TRAIN_PIDS[@]}" 2>/dev/null; TRAIN_PIDS=(); }
+
 launch2() {  # launch2 <gpu> <tag> <extra args...>  -- 12B->1.4B ablation config
   local gpu=$1 tag=$2; shift 2
   if grep -aq "FINAL full" "$LOG/$tag.log" 2>/dev/null; then echo "[aws_train] SKIP $tag (done)"; return; fi
   echo "[aws_train] GPU$gpu <- $tag (12B->1.4B)"
   CUDA_VISIBLE_DEVICES=$gpu nohup uv run python $M --config configs/m5_12b14b.yaml \
     --ckpt-every 2000000 --resume --s3-ckpt "$S3CK" "$@" --tag "_$tag" >> "$LOG/$tag.log" 2>&1 &
+  TRAIN_PIDS+=($!)
 }
 
 launch() {   # launch <gpu> <tag> <extra args...>
@@ -91,6 +96,7 @@ launch() {   # launch <gpu> <tag> <extra args...>
   echo "[aws_train] GPU$gpu <- $tag"
   CUDA_VISIBLE_DEVICES=$gpu nohup uv run python $M $G "$@" --tag "_$tag" \
     >> "$LOG/$tag.log" 2>&1 &
+  TRAIN_PIDS+=($!)
 }
 
 # --- 12B->6.9B screen: only this box's (arm,seed) slice, packed across its GPUs ---
@@ -103,10 +109,10 @@ if [ "$DO_B69" = 1 ]; then
         shrink) launch $((i++)) b69_shrink_s$s_ --init hybrid_rs --comp-reg shrink --seed $s_;;
         ridge)  launch $((i++)) b69_ridge_s$s_  --init hybrid_rs --comp-reg ridge  --seed $s_;;
       esac
-      [ "$i" -ge 8 ] && { echo "[aws_train] 8 GPUs busy; waiting for this wave"; wait; i=0; }
+      [ "$i" -ge 8 ] && { echo "[aws_train] 8 GPUs busy; waiting for this wave"; wait_for_training; i=0; }
     done
   done
-  wait
+  wait_for_training
 fi
 
 # --- 12B->1.4B donor-scale ablation (same donor, 8192^2 solve) ---
@@ -120,10 +126,10 @@ if [ "$DO_D12" = 1 ]; then
         shrink) launch2 $((j++)) d12_shrink_s$s_ --init hybrid_rs --comp-reg shrink --seed $s_;;
         ridge)  launch2 $((j++)) d12_ridge_s$s_  --init hybrid_rs --comp-reg ridge  --seed $s_;;
       esac
-      [ "$j" -ge 8 ] && { wait; j=0; }
+      [ "$j" -ge 8 ] && { wait_for_training; j=0; }
     done
   done
-  wait
+  wait_for_training
 fi
 
 sync_up
