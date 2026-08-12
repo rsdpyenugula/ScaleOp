@@ -111,7 +111,8 @@ launch2() {  # launch2 <gpu> <tag> <extra args...>  -- 12B->1.4B ablation config
   claim "$tag"
   echo "[aws_train] GPU$gpu <- $tag (12B->1.4B)"
   CUDA_VISIBLE_DEVICES=$gpu nohup uv run python $M --config configs/m5_12b14b.yaml \
-    --ckpt-every 2000000 --resume --s3-ckpt "$S3CK" "$@" --tag "_$tag" >> "$LOG/$tag.log" 2>&1 &
+    --ckpt-every 2000000 --resume --s3-ckpt "s3://$BUCKET/m5_12b14b/ckpt" \
+    "$@" --tag "_$tag" >> "$LOG/$tag.log" 2>&1 &
   TRAIN_PIDS+=($!)
 }
 
