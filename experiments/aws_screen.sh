@@ -137,10 +137,11 @@ ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'command -v uv >/dev/null || curl -LsSf https:
 # Forward the work slice: several instances can run concurrently on disjoint seeds, each
 # writing its own per-run S3 checkpoint object (see aws_train.sh / m5_train --s3-ckpt).
 SEEDS="${SEEDS:-0 1 2}"; ARMS="${ARMS:-sub shrink ridge}"
+CFG="${CFG:-configs/m5_12b69b.yaml}"   # forwarded too, so smoke/ablation configs can be selected
 DO_B69="${DO_B69:-1}"; DO_D12="${DO_D12:-1}"
-echo "[aws] slice: seeds='$SEEDS' arms='$ARMS' b69=$DO_B69 d12=$DO_D12"
+echo "[aws] slice: cfg=$CFG seeds='$SEEDS' arms='$ARMS' b69=$DO_B69 d12=$DO_D12"
 ssh "${SSH_OPTS[@]}" ubuntu@"$IP" "cd scaleop && export PATH=\$HOME/.local/bin:\$PATH && \
-  export SEEDS='$SEEDS' ARMS='$ARMS' DO_B69='$DO_B69' DO_D12='$DO_D12' BUCKET='$BUCKET' && \
+  export SEEDS='$SEEDS' ARMS='$ARMS' DO_B69='$DO_B69' DO_D12='$DO_D12' BUCKET='$BUCKET' CFG='$CFG' && \
   rm -f aws_logs/TRAIN_DONE && setsid nohup bash experiments/aws_train.sh > aws_train_console.log 2>&1 < /dev/null & echo started"
 echo "[aws] detached; polling every 5 min (max ${MAX_HOURS}h)"
 for k in $(seq 1 $((MAX_HOURS*12))); do
