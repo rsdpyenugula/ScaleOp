@@ -118,6 +118,11 @@ echo "[aws] shipping branch $BRANCH ($(git rev-parse --short "$BRANCH"))"
 rsync -az -e "ssh ${SSH_OPTS[*]}" --exclude data --exclude '*.pyc' \
       --exclude paper --exclude paper2 --exclude project_docs/results "$STAGE"/ ubuntu@"$IP":scaleop/
 rm -rf "$STAGE"
+# The AWS runner scripts are infrastructure and live on the CURRENT branch (master), not in
+# the paper2-a archive -- ship them explicitly, else aws_train.sh is missing on the box.
+rsync -az -e "ssh ${SSH_OPTS[*]}" experiments/aws_train.sh ubuntu@"$IP":scaleop/experiments/
+ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'test -s scaleop/experiments/aws_train.sh' \
+  || { echo "FATAL: aws_train.sh missing on the instance"; exit 1; }
 ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh'
 
 # --- run the 9-arm screen DETACHED, then poll (a multi-hour ssh session always drops) ---
