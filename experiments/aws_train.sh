@@ -12,7 +12,11 @@ LOG=${LOG:-$PWD/aws_logs}; mkdir -p "$LOG"
 M=experiments/m5_train.py
 CFG=${CFG:-configs/m5_12b69b.yaml}
 BUCKET=${BUCKET:-de-aiml-scaleop-662022802750}
-S3CK="s3://$BUCKET/12b69b/ckpt"
+# Namespace the checkpoint prefix by CONFIG, not a fixed string: otherwise a smoke run
+# (tiny 410M->160M) writes to the same object name as the real 12B->6.9B run and a later
+# --resume would try to load a 160M checkpoint into a 6.9B model.
+EXPT=$(basename "$CFG" .yaml)
+S3CK="s3://$BUCKET/$EXPT/ckpt"
 # Which work THIS instance owns. Disjoint slices let several boxes run at once without
 # ever touching the same run: checkpoints are one S3 object per (arm,seed), written by
 # exactly one process. e.g. SEEDS="0 1" on box A, SEEDS="2" on box B.
