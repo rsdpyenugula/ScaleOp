@@ -101,12 +101,19 @@ skip_run()  {           # true if some box already finished or is running this t
 
 TRAIN_PIDS=()          # only these are waited on; a bare `wait` would also block on the
                        # never-ending spot-interruption watcher and hang the runner forever
+release()   { case "$1" in d12_*) local C="s3://$BUCKET/m5_12b14b/claims";; *) local C="$S3CLAIM";; esac
+              aws s3 rm "$C/$1.claim" --only-show-errors 2>/dev/null; }
+
 wait_for_training() {
   [ ${#TRAIN_PIDS[@]} -gt 0 ] && wait "${TRAIN_PIDS[@]}" 2>/dev/null; TRAIN_PIDS=()
-  for lg in "$LOG"/b69_*.log "$LOG"/d12_*.log; do            # publish what finished
+  for lg in "$LOG"/b69_*.log "$LOG"/d12_*.log; do
     [ -e "$lg" ] || continue
     t=$(basename "$lg" .log)
-    grep -aq "FINAL full" "$lg" 2>/dev/null && ! finished "$t" && mark_done "$t"
+    if grep -aq "FINAL full" "$lg" 2>/dev/null; then
+      finished "$t" || mark_done "$t"                        # publish success
+    else
+      release "$t"    # RELEASE a failed run's claim, else the work is skipped forever
+    fi
   done
 }
 
