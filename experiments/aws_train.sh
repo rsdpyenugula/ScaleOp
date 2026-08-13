@@ -85,9 +85,14 @@ fi
 S3CLAIM="s3://$BUCKET/$EXPT/claims"
 claimed()   { aws s3 ls "$S3CLAIM/$1.claim" >/dev/null 2>&1; }
 finished()  { aws s3 ls "$S3CLAIM/$1.done"  >/dev/null 2>&1; }
-claim()     { echo "$(hostname) $(date -Is)" | aws s3 cp - "$S3CLAIM/$1.claim" --only-show-errors 2>/dev/null; }
-mark_done() { echo "$(hostname) $(date -Is)" | aws s3 cp - "$S3CLAIM/$1.done"  --only-show-errors 2>/dev/null; }
+claim()     { case "$1" in d12_*) local C="s3://$BUCKET/m5_12b14b/claims";; *) local C="$S3CLAIM";; esac
+              echo "$(hostname) $(date -Is)" | aws s3 cp - "$C/$1.claim" --only-show-errors 2>/dev/null; }
+mark_done() { case "$1" in d12_*) local C="s3://$BUCKET/m5_12b14b/claims";; *) local C="$S3CLAIM";; esac
+              echo "$(hostname) $(date -Is)" | aws s3 cp - "$C/$1.done"  --only-show-errors 2>/dev/null; }
 skip_run()  {           # true if some box already finished or is running this tag
+  # d12_* runs belong to the ablation experiment, so their claims live in that namespace --
+  # otherwise the .done markers written for finished d12 runs are never seen and they re-run.
+  case "$1" in d12_*) S3CLAIM="s3://$BUCKET/m5_12b14b/claims";; *) S3CLAIM="s3://$BUCKET/$EXPT/claims";; esac
   grep -aq "FINAL full" "$LOG/$1.log" 2>/dev/null && return 0
   finished "$1" && { echo "[aws_train] SKIP $1 (done on another box)"; return 0; }
   claimed  "$1" && { echo "[aws_train] SKIP $1 (claimed by another box)"; return 0; }
