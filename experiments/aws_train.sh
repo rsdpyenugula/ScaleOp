@@ -45,7 +45,18 @@ SYNCER=""
     sleep 5
   done ) & SPOTW=$!
 
-cleanup(){ kill ${SYNCER:-} $SPOTW 2>/dev/null; sync_up; }   # belt-and-braces final flush
+# Logs must leave the box WHILE it lives: the previous box was killed by its dead-man switch
+# and every log went with it, so 5 failed runs could not be diagnosed at all.
+( while true; do
+    aws s3 sync "$LOG"/ "s3://$BUCKET/logs/" --exclude 'prev/*' --only-show-errors 2>/dev/null
+    aws s3 sync project_docs/results/ "s3://$BUCKET/results/" --only-show-errors 2>/dev/null
+    sleep 180
+  done ) & LOGSYNC=$!
+
+cleanup(){ kill ${SYNCER:-} $SPOTW ${LOGSYNC:-} 2>/dev/null
+           aws s3 sync "$LOG"/ "s3://$BUCKET/logs/" --exclude 'prev/*' --only-show-errors 2>/dev/null
+           aws s3 sync project_docs/results/ "s3://$BUCKET/results/" --only-show-errors 2>/dev/null
+           sync_up; }
 trap cleanup EXIT
 
 # Guard: the shipped tree must be the Paper-2 branch. Master's m5_train.py has none of
@@ -99,6 +110,14 @@ skip_run()  {           # true if some box already finished or is running this t
   return 1
 }
 
+SIGMA_FILE="data/moments/sigma_$(grep -E '^large:' "$CFG" | sed 's/.*"\(.*\)".*/\1/')_1000_$(grep -E '^donor_dtype:' "$CFG" | awk '{print $2}').pt"
+await_sigma() {   # let the FIRST compensated run publish Sigma before any other starts
+  [ -s "$SIGMA_FILE" ] && return 0
+  echo "[aws_train] waiting for run #1 to publish $SIGMA_FILE (serialised; 5 concurrent waiters failed last time)"
+  for _ in $(seq 1 180); do sleep 30; [ -s "$SIGMA_FILE" ] && { echo "[aws_train] Sigma ready"; return 0; }; done
+  echo "[aws_train] WARNING Sigma never appeared after 90min; continuing"
+}
+
 TRAIN_PIDS=()          # only these are waited on; a bare `wait` would also block on the
                        # never-ending spot-interruption watcher and hang the runner forever
 release()   { case "$1" in d12_*) local C="s3://$BUCKET/m5_12b14b/claims";; *) local C="$S3CLAIM";; esac
@@ -138,22 +157,6 @@ launch() {   # launch <gpu> <tag> <extra args...>
   TRAIN_PIDS+=($!)
 }
 
-# --- 12B->6.9B screen: only this box's (arm,seed) slice, packed across its GPUs ---
-i=0
-if [ "$DO_B69" = 1 ]; then
-  for s_ in $SEEDS; do
-    for a in $ARMS; do
-      case $a in
-        sub)    launch $((i++)) b69_sub_s$s_    --init subclone_rs                 --seed $s_;;
-        shrink) launch $((i++)) b69_shrink_s$s_ --init hybrid_rs --comp-reg shrink --seed $s_;;
-        ridge)  launch $((i++)) b69_ridge_s$s_  --init hybrid_rs --comp-reg ridge  --seed $s_;;
-      esac
-      [ "$i" -ge 8 ] && { echo "[aws_train] 8 GPUs busy; waiting for this wave"; wait_for_training; i=0; }
-    done
-  done
-  wait_for_training
-fi
-
 # --- 12B->1.4B donor-scale ablation (same donor, 8192^2 solve) ---
 if [ "$DO_D12" = 1 ]; then
   echo "[aws_train] 12B->1.4B ablation for seeds '$SEEDS'"
@@ -165,7 +168,25 @@ if [ "$DO_D12" = 1 ]; then
         shrink) launch2 $((j++)) d12_shrink_s$s_ --init hybrid_rs --comp-reg shrink --seed $s_;;
         ridge)  launch2 $((j++)) d12_ridge_s$s_  --init hybrid_rs --comp-reg ridge  --seed $s_;;
       esac
+      [ "$j" = 1 ] && await_sigma
       [ "$j" -ge 8 ] && { wait_for_training; j=0; }
+    done
+  done
+  wait_for_training
+fi
+
+# --- 12B->6.9B screen: only this box's (arm,seed) slice, packed across its GPUs ---
+i=0
+if [ "$DO_B69" = 1 ]; then
+  for s_ in $SEEDS; do
+    for a in $ARMS; do
+      case $a in
+        sub)    launch $((i++)) b69_sub_s$s_    --init subclone_rs                 --seed $s_;;
+        shrink) launch $((i++)) b69_shrink_s$s_ --init hybrid_rs --comp-reg shrink --seed $s_;;
+        ridge)  launch $((i++)) b69_ridge_s$s_  --init hybrid_rs --comp-reg ridge  --seed $s_;;
+      esac
+      [ "$i" = 1 ] && await_sigma
+      [ "$i" -ge 8 ] && { echo "[aws_train] 8 GPUs busy; waiting for this wave"; wait_for_training; i=0; }
     done
   done
   wait_for_training

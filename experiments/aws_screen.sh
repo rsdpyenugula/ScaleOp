@@ -17,7 +17,8 @@ TYPES="${TYPES:-}"                   # e.g. "p4de.24xlarge p5.48xlarge" (tried i
 KEY_NAME="de-aiml"
 SUBNETS=""                           # resolved per region below
                                                # an AZ is short); then 1c, then 1b explicitly
-SG_ID=""                             # resolved per region below
+SG_ID="${SG_ID:-}"                   # resolved per region below; pin via env to skip creation
+                                     # (the launcher role has no ec2:CreateSecurityGroup)
 BUCKET="de-aiml-scaleop-662022802750"
 SPOT=0; DRYRUN=0
 AMI_NAME='Deep Learning OSS Nvidia Driver AMI GPU PyTorch*Ubuntu 22.04*'
@@ -103,7 +104,7 @@ for SUBNET_ID in $SUBNETS; do
 done
 [ -n "$IID" ] && break
 done
-[ -n "$IID" ] || { echo "run-instances FAILED in all AZs (no p4de capacity right now)"; exit 1; }
+[ -n "$IID" ] || { echo "run-instances FAILED in all AZs (no ${TYPES:-$INSTANCE_TYPE} capacity right now)"; exit 1; }
 echo "[aws] launched $IID — will TERMINATE on exit"
 cleanup(){ echo "[aws] terminating $IID"; "${AWS[@]}" ec2 terminate-instances --instance-ids "$IID" >/dev/null && echo "[aws] TERMINATED"; }
 trap cleanup EXIT INT TERM
@@ -158,10 +159,15 @@ for k in $(seq 1 $((MAX_HOURS*12))); do
   # trainers -- otherwise the box gets terminated during setup (this happened).
   st=$(ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'ls scaleop/aws_logs/TRAIN_DONE >/dev/null 2>&1 && echo DONE || pgrep -f "aws_train.sh|[m]5_train.py|capture_and_cache" >/dev/null && echo RUNNING || echo IDLE' 2>/dev/null)
   case "$st" in
-    DONE)  echo "[aws] training complete"; break;;
-    IDLE)  echo "[aws] no trainers and no DONE marker — checking for a fast failure"; \
-           ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'tail -5 scaleop/aws_logs/b69_sub_s0.log 2>/dev/null'; break;;
-    *)     [ $((k % 12)) -eq 0 ] && ssh "${SSH_OPTS[@]}" ubuntu@"$IP" \
+    DONE)  echo "[aws] training complete: ALL DONE"; break;;
+    IDLE)  IDLE_N=$((${IDLE_N:-0}+1))
+           echo "[aws] idle poll $IDLE_N/3 (no trainers, no DONE marker)"
+           if [ "$IDLE_N" -ge 3 ]; then
+             echo "[aws] idle 3 polls (~15min) — treating as a fast failure"
+             ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'tail -5 scaleop/aws_logs/*.log 2>/dev/null | tail -20'
+             break
+           fi;;
+    *)     IDLE_N=0; [ $((k % 12)) -eq 0 ] && ssh "${SSH_OPTS[@]}" ubuntu@"$IP" \
              'grep -h "t=" scaleop/aws_logs/b69_*.log 2>/dev/null | tail -2' || true;;
   esac
 done
