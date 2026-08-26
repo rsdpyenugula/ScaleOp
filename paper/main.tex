@@ -32,12 +32,16 @@ in the Pythia family end to end. Representations align strongly across sizes
 (ridge $R^2=0.84$) while parameters align weakly. Dense weight projection is
 functionally destructive, and a bit-exact reconstruction control shows this is
 not an assembly artifact: basis mixing breaks rotary, per-head, GELU, and
-LayerNorm structure. After the best-fit linear operator, weight residuals are
-statistically indistinguishable from noise under shuffle controls. Conversion
+LayerNorm structure. After the best-fit linear operator, weight residuals carry
+no learnable or transferable signal under shuffle controls. Conversion
 value therefore lives in initialization. In matched-budget continued
 pre-training we decompose conversion into two independent levers: least-squares
 compensation, a function lever with the best zero-shot quality, and
-variance-preserving rescale, a dynamics lever with the best endpoints.
+variance-preserving rescale, a dynamics lever with the best endpoints. The
+decomposition follows a placement rule readable off the architecture:
+compensation is well-posed exactly on the paths where no normalization sits
+between the cut and the read (here, the attention-output and MLP
+down-projections), and the norm-fronted paths take rescale.
 Compensation is a token-efficient, low-budget win rather than a universal one. At
 30M tokens it beats the strongest subcloning variant on both a width-reduced pair
 ($84.0\pm1.8$ vs.\ $89.7\pm3.7$, 3/3 seeds) and a held-out depth-reduced pair

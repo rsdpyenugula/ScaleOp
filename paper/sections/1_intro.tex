@@ -30,9 +30,9 @@ $R^2=0.84$), its weights are not. Second, we diagnose why densely projecting the
 large weights into the small shape is functionally destructive
 (\S\ref{sec:projection}): a bit-exact control rules out assembly, leaving the
 projection mathematics, whose basis mixing breaks rotary, per-head, GELU, and
-LayerNorm structure. Third, what the best-fit linear operator misses is
-indistinguishable from noise under shuffle controls (\S\ref{sec:residuals}), so
-no zero-shot fix exists. Conversion value must therefore live in
+LayerNorm structure. Third, what the best-fit linear operator misses carries no
+learnable signal under shuffle controls (\S\ref{sec:residuals}), so
+no zero-shot fix exists at this granularity. Conversion value must therefore live in
 \emph{initialization}, and the fourth step is a matched-budget recovery race
 (\S\ref{sec:race}) that decomposes conversion into two independent levers over
 structure-respecting selection: closed-form least-squares compensation
@@ -51,7 +51,8 @@ Our contributions are:
   Rebuilding the donor from its own extracted weights reproduces its logits
   bit-exactly, so the projected model's collapse is attributable to basis mixing
   alone: dense maps break rotary pairing, per-head attention, elementwise GELU,
-  and per-feature LayerNorm, with LayerNorm the largest single factor
+  and per-feature LayerNorm, with LayerNorm mismatch the largest single
+  factor in the zero-shot collapse
   (\S\ref{sec:projection}).
 \item \textbf{A null result under controls.} After the best-fit linear operator,
   weight residuals carry no cross-layer direction, no patch-learnable signal, and
@@ -59,8 +60,12 @@ Our contributions are:
   shuffle controls with bootstrap CIs, $p\ge0.99$): no learned zero-shot
   correction exists at this granularity (\S\ref{sec:residuals}).
 \item \textbf{A two-lever decomposition of conversion, and a method that stacks
-  them.} At matched budget, least-squares compensation is the function
-  lever (best zero-shot) and variance-preserving rescale the
+  them.} The levers partition by where normalization sits: least-squares
+  compensation is well-posed only on the paths with no norm between the cut and
+  the read (the attention-output and MLP down-projections), and the norm-fronted
+  paths take variance-preserving rescale --- a placement rule readable off any
+  architecture's wiring. At matched budget, compensation is the function
+  lever (best zero-shot) and rescale the
   training-dynamics lever (best endpoints); their combination,
   Compensated Selection, dominates the strongest variant of weight
   subcloning~\citep{samragh2023weight} on both axes and in every seed
