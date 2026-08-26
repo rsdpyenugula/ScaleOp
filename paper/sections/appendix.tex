@@ -94,14 +94,16 @@ random-init 410M (lower)     & 65{,}962 \\
 \midrule
 proj., LN from 410M   & 181{,}242 \\
 proj., LN from 1.4B & $10^{13}$ \\
+proj., neutral LN$^{\ast}$ & 12{,}323 \\
+structured selection$^{\ast}$ & 11{,}509 \\
 \bottomrule
 \end{tabular}
 \\[3pt]
-{\footnotesize With fresh \emph{neutral} LayerNorms (gain 1, bias 0) the same
-projected matrices score $\sim$12.3k quick-perplexity --- $\sim$15$\times$ better
-than the 181{,}242 row and $\sim$5$\times$ better than random init --- so much of
-the collapse is LayerNorm mismatch, not weight destruction alone
-(\S\ref{sec:race}); the structure-mixing diagnosis still holds directionally.}
+{\footnotesize $^{\ast}$Quick-eval perplexity (the two evals agree at these
+magnitudes: random init scores $\approx$66k on both). Neutral norms (gain 1,
+bias 0) recover $\sim$15$\times$, so LayerNorm mismatch dominates the zero-shot
+collapse; the residual gap to structured selection is small at $t{=}0$ but
+$3\times$ after training --- the decomposition in \S\ref{sec:projection}.}
 \end{minipage}
 \end{table}
 

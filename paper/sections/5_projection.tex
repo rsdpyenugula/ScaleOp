@@ -61,9 +61,25 @@ our global $2048\!\to\!1024$ head-space basis mixes dimensions across
 heads. GELU is elementwise in the MLP hidden space, so
 $\mathrm{GELU}(Bx)\neq B\,\mathrm{GELU}(x)$. LayerNorm gains and biases are
 per-feature, so a rotated stream no longer matches any diagonal gain, which is
-why the projected-LN variant explodes to $10^{13}$. Function-preserving zero-shot
-conversion therefore needs structure-respecting selection: keep or drop
-whole heads, hidden units, and features (the architecture's own symmetry group),
-not dense blending. Dense projections are useful only as initializations
-for brief fine-tuning (\S\ref{sec:race}).
+why the projected-LN variant explodes to $10^{13}$.
+
+\paragraph{Separating the violations.}
+The norm violation and the mixing violations can be isolated with arms we
+already run. Replacing the projected model's mismatched norms with neutral ones
+(gain $1$, bias $0$) recovers $\sim$$15\times$ zero-shot
+($181{,}242 \to 12{,}323$; App.~Table~\ref{tab:anchor}, Table~\ref{tab:ladder}),
+so LayerNorm mismatch dominates the immediate collapse.\footnote{The two
+numbers come from the strided and quick evaluations respectively; the evals
+agree at these magnitudes (random init scores $\approx$66k on both).} What
+remains is the basis-mixing cost, and it is a trainability cost more than a
+zero-shot one: with neutral norms, the projected model starts within $7\%$ of
+structure-preserving selection ($12{,}323$ vs $11{,}509$ at $t{=}0$) yet
+finishes $3\times$ worse after identical training ($1{,}054.5$ vs $355.8$ at
+30M tokens, Table~\ref{tab:ladder}). Rotary, per-head, and GELU mixing are not
+individually isolated here; their joint effect is what the training gap
+measures. Function-preserving zero-shot conversion therefore needs
+structure-respecting selection: keep or drop whole heads, hidden units, and
+features (the architecture's own symmetry group), not dense blending. Dense
+projections are useful only as initializations for brief fine-tuning
+(\S\ref{sec:race}).
 

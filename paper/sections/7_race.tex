@@ -3,8 +3,8 @@
 
 The characterization so far is diagnostic: representations align
 (\S\ref{sec:representations}), dense projection is destructive
-(\S\ref{sec:projection}), and its post-operator residuals are noise
-(\S\ref{sec:residuals}). The constructive claim follows. If conversion value
+(\S\ref{sec:projection}), and its post-operator residuals carry no learnable
+signal (\S\ref{sec:residuals}). The constructive claim follows. If conversion value
 lives in \emph{initialization}, the decisive test is a matched-budget recovery
 race: every candidate gets the same target shape, data, schedule, and token
 budget, and continued pre-training reveals which starting weights convert
@@ -188,7 +188,7 @@ compared only within a horizon).}
 \paragraph{At convergence, the edge closes.}
 Pushing the primary pair to 1B tokens ($33\times$ the headline budget), the two
 rescale leaders finish level: \textsc{hybrid\_rs} $40.0$ vs.\
-\textsc{subclone\_rs} $40.0$ (an exact tie), both $\sim$$1.4\times$ ahead of from scratch
+\textsc{subclone\_rs} $40.0$ (parity in this run; one seed per arm), both $\sim$$1.4\times$ ahead of from scratch
 ($57.4$) and far nearer the real 410M ($\approx15.6$) than at 30M. Compensation's
 advantage is thus a low-budget, token-efficiency effect: it reaches a given
 quality with fewer tokens but is redundant with rescale once the budget is large,
@@ -265,8 +265,9 @@ batch-32 finals of Table~\ref{tab:ladder} agree on the ordering.
 \footnotesize
 \caption{Adding knowledge distillation (frozen 1.4B teacher) to continued
 pre-training, primary pair (1.4B$\to$410M), 30M tokens, batch 16 throughout for a
-matched comparison. Final full WikiText-103 perplexity; \textsc{subclone\_rs} is a
-structured-pruning init, so its distilled column is the prune-plus-distill recipe.}
+matched comparison. Final full WikiText-103 perplexity, one seed per cell;
+\textsc{subclone\_rs} is a structured-pruning init, so its distilled column is the
+prune-plus-distill recipe.}
 \label{tab:distill}
 \begin{tabular}{lrr}
 \toprule
