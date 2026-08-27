@@ -265,28 +265,32 @@ batch-32 finals of Table~\ref{tab:ladder} agree on the ordering.
 \footnotesize
 \caption{Adding knowledge distillation (frozen 1.4B teacher) to continued
 pre-training, primary pair (1.4B$\to$410M), 30M tokens, batch 16 throughout for a
-matched comparison. Final full WikiText-103 perplexity, one seed per cell;
-\textsc{subclone\_rs} is a structured-pruning init, so its distilled column is the
-prune-plus-distill recipe.}
+matched comparison. Final full WikiText-103 perplexity, mean$\pm$std over three
+data-draw seeds (random: single seed); \textsc{subclone\_rs} is a
+structured-pruning init, so its distilled column is the prune-plus-distill
+recipe.}
 \label{tab:distill}
 \begin{tabular}{lrr}
 \toprule
 Init & no distillation & $+$ distillation \\
 \midrule
 random                    & 1{,}359.4 & 1{,}311.3 \\
-\textsc{subclone\_rs} (pruning) & 91.6 & 96.7 \\
-\textsc{hybrid\_rs} (ours)      & \textbf{88.3} & \textbf{83.2} \\
+\textsc{subclone\_rs} (pruning) & $93.9\pm2.0$ & $103.5\pm7.4$ \\
+\textsc{hybrid\_rs} (ours)      & $\mathbf{88.2\pm1.2}$ & $\mathbf{80.8\pm2.1}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Three findings. First, the two-lever init beats the pruning init with and without
-a teacher (\textsc{hybrid\_rs} $88.3$ vs \textsc{subclone\_rs} $91.6$ undistilled;
-$83.2$ vs $96.7$ distilled), so the contribution is not subsumed by distillation.
-Second, the two are complementary: distillation improves \textsc{hybrid\_rs}
-($88.3\to83.2$) but degrades the pruning init ($91.6\to96.7$), which over-corrects
-under the added objective much as the stacked levers do at the largest scale
-(\S\ref{sec:race:scale}), and \textsc{hybrid\_rs}$+$distillation is the best arm.
+Three findings, each holding in all three seeds. First, the two-lever init beats
+the pruning init with and without a teacher (\textsc{hybrid\_rs} $88.2\pm1.2$ vs
+\textsc{subclone\_rs} $93.9\pm2.0$ undistilled; $80.8\pm2.1$ vs $103.5\pm7.4$
+distilled; 3/3 paired wins in both columns), so the contribution is not subsumed
+by distillation. Second, the two are complementary: distillation improves
+\textsc{hybrid\_rs} in every seed ($88.2\to80.8$ on average) but degrades the
+pruning init in every seed ($93.9\to103.5$), which over-corrects under the added
+objective much as the stacked levers do at the largest scale
+(\S\ref{sec:race:scale}), and \textsc{hybrid\_rs}$+$distillation is the best arm
+in every seed.
 Third, distillation is not free: querying the teacher every step halves throughput
 ($\sim$4.5k vs $\sim$9.4k tok/s), whereas our init reads the donor once at
 construction and never again. We do not reproduce the billion-token,
