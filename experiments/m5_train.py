@@ -122,6 +122,10 @@ def main() -> int:
     tok = load_tokenizer(cfg["small"])
 
     model = build_init(args.init, cfg, dev)
+    # Construction scratch (donor weights, per-layer Sigma for the compensation solve) is
+    # freed but stays in the caching allocator; release it so the training step's fp32
+    # logits block fits on a 40GB card (hybrid_rs OOM'd in the first backward otherwise).
+    import gc; gc.collect(); torch.cuda.empty_cache()
     model.train()
 
     # Optional knowledge-distillation lever: the donor is queried each step as a
