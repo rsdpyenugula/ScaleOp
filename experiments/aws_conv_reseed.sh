@@ -114,22 +114,28 @@ ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'command -v uv >/dev/null || curl -LsSf https:
 
 # 4 parallel single-GPU jobs, detached; logs sync to S3 every 3 min while the box lives.
 ssh "${SSH_OPTS[@]}" ubuntu@"$IP" "cd scaleop && export PATH=\$HOME/.local/bin:\$PATH && \
-  mkdir -p aws_logs && rm -f aws_logs/TRAIN_DONE && setsid nohup bash -c '
+  mkdir -p aws_logs && rm -f aws_logs/TRAIN_DONE && ( setsid nohup bash -c '
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True; \
   ( while true; do aws s3 sync aws_logs/ s3://$BUCKET/conv_reseed/logs/ --only-show-errors 2>/dev/null; \
       aws s3 sync project_docs/results/ s3://$BUCKET/conv_reseed/results/ --only-show-errors 2>/dev/null; sleep 180; done ) & \
   ( while true; do sleep 900; aws s3 sync data/m5/ s3://$BUCKET/conv_reseed/checkpoints/ --only-show-errors 2>/dev/null; done ) & \
-  CUDA_VISIBLE_DEVICES=0 uv run python experiments/m5_train.py --config configs/m5_conv.yaml --init hybrid_rs   --seed 1 --tag _1b_s1 --resume > aws_logs/conv_hyb_s1.log 2>&1 & \
-  CUDA_VISIBLE_DEVICES=1 uv run python experiments/m5_train.py --config configs/m5_conv.yaml --init subclone_rs --seed 1 --tag _1b_s1 --resume > aws_logs/conv_sub_s1.log 2>&1 & \
-  CUDA_VISIBLE_DEVICES=2 uv run python experiments/m5_train.py --config configs/m5_conv.yaml --init hybrid_rs   --seed 2 --tag _1b_s2 --resume > aws_logs/conv_hyb_s2.log 2>&1 & \
-  CUDA_VISIBLE_DEVICES=3 uv run python experiments/m5_train.py --config configs/m5_conv.yaml --init subclone_rs --seed 2 --tag _1b_s2 --resume > aws_logs/conv_sub_s2.log 2>&1 & \
-  wait; touch aws_logs/TRAIN_DONE; \
+  uv run python -c \"from lib.activations import capture_and_cache; capture_and_cache(\\\"1.4b\\\")\" > aws_logs/cache_build.log 2>&1 || { echo CACHE_BUILD_FAILED > aws_logs/FAILED; exit 1; }; \
+  CUDA_VISIBLE_DEVICES=0 uv run python experiments/m5_train.py --config configs/m5_conv.yaml --init hybrid_rs   --seed 1 --tag _1b_s1 --resume > aws_logs/conv_hyb_s1.log 2>&1 & P1=\$!; \
+  CUDA_VISIBLE_DEVICES=1 uv run python experiments/m5_train.py --config configs/m5_conv.yaml --init subclone_rs --seed 1 --tag _1b_s1 --resume > aws_logs/conv_sub_s1.log 2>&1 & P2=\$!; \
+  CUDA_VISIBLE_DEVICES=2 uv run python experiments/m5_train.py --config configs/m5_conv.yaml --init hybrid_rs   --seed 2 --tag _1b_s2 --resume > aws_logs/conv_hyb_s2.log 2>&1 & P3=\$!; \
+  CUDA_VISIBLE_DEVICES=3 uv run python experiments/m5_train.py --config configs/m5_conv.yaml --init subclone_rs --seed 2 --tag _1b_s2 --resume > aws_logs/conv_sub_s2.log 2>&1 & P4=\$!; \
+  wait \$P1 \$P2 \$P3 \$P4; touch aws_logs/TRAIN_DONE; \
   aws s3 sync aws_logs/ s3://$BUCKET/conv_reseed/logs/ --only-show-errors; \
-  aws s3 sync project_docs/results/ s3://$BUCKET/conv_reseed/results/ --only-show-errors' > aws_conv_console.log 2>&1 < /dev/null & echo started"
+  aws s3 sync project_docs/results/ s3://$BUCKET/conv_reseed/results/ --only-show-errors' > aws_conv_console.log 2>&1 < /dev/null & ) && echo started"
+# The subshell above matters: without it the backgrounded AND-list keeps the ssh channel
+# open for the whole run, this ssh never returns, and the poller below never starts.
 echo "[aws] detached; polling every 5 min (max ${MAX_HOURS}h)"
 IDLE_N=0
 for k in $(seq 1 $((MAX_HOURS*12))); do
   sleep 300
-  st=$(ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'ls scaleop/aws_logs/TRAIN_DONE >/dev/null 2>&1 && echo DONE || pgrep -f "[m]5_train.py" >/dev/null && echo RUNNING || echo IDLE' 2>/dev/null)
+  # Busy = a REAL python process from our venv (the bash -c wrapper's command string
+  # also contains "m5_train.py", so matching that reads a crashed box as RUNNING).
+  st=$(ssh "${SSH_OPTS[@]}" ubuntu@"$IP" 'ls scaleop/aws_logs/TRAIN_DONE >/dev/null 2>&1 && echo DONE || ls scaleop/aws_logs/FAILED >/dev/null 2>&1 && echo IDLE || pgrep -f "scaleop/.venv/bin/python" >/dev/null && echo RUNNING || echo IDLE' 2>/dev/null)
   case "$st" in
     DONE)  echo "[aws] training complete: ALL DONE"; break;;
     IDLE)  IDLE_N=$((IDLE_N+1))
