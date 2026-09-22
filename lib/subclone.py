@@ -60,22 +60,27 @@ def _qk_head_indices(Q, K, heads, head_dim_L, head_dim_S, rotary_pct):
     return torch.cat(idx)
 
 
-def _vo_head_indices(V, O, heads, head_dim_L, head_dim_S):
-    """Per-head kept dims for V/O: top head_dim_S by ‖V_row‖·‖O_col‖."""
+def _vo_head_indices(V, O, heads, head_dim_L, head_dim_S, act=None):
+    """Per-head kept dims for V/O: top head_dim_S by ‖V_row‖·‖O_col‖, or, with
+    `act` (RMS activation per input wire of O), by the wire's expected output
+    energy act_d·‖O_col_d‖ — the same Σ the compensation uses, spent on choosing."""
     idx = []
     for h in range(heads):
         rows = slice(h * head_dim_L, (h + 1) * head_dim_L)
-        score = V[rows].norm(dim=1) * O[:, rows].norm(dim=0)
+        gain = V[rows].norm(dim=1) if act is None else act[rows]
+        score = gain * O[:, rows].norm(dim=0)
         idx.append(score.topk(head_dim_S).indices.sort().values + h * head_dim_L)
     return torch.cat(idx)
 
 
-def _whole_head_indices(V, O, heads, head_dim_L, heads_small):
+def _whole_head_indices(V, O, heads, head_dim_L, heads_small, act=None):
     """Keep whole heads (head_dim unchanged): top heads_small by the head's
-    total output contribution Σ_d ‖V_row_d‖·‖O_col_d‖."""
+    total output contribution Σ_d ‖V_row_d‖·‖O_col_d‖ (or Σ_d act_d·‖O_col_d‖)."""
+    def gain(h):
+        rows = slice(h * head_dim_L, (h + 1) * head_dim_L)
+        return V[rows].norm(dim=1) if act is None else act[rows]
     scores = torch.stack([
-        (V[h * head_dim_L:(h + 1) * head_dim_L].norm(dim=1)
-         * O[:, h * head_dim_L:(h + 1) * head_dim_L].norm(dim=0)).sum()
+        (gain(h) * O[:, h * head_dim_L:(h + 1) * head_dim_L].norm(dim=0)).sum()
         for h in range(heads)])
     kept_heads = scores.topk(heads_small).indices.sort().values
     return torch.cat([torch.arange(h * head_dim_L, (h + 1) * head_dim_L, device=V.device)
@@ -84,12 +89,18 @@ def _whole_head_indices(V, O, heads, head_dim_L, heads_small):
 
 def select_indices(WL: dict, *, heads: int, head_dim_small: int, mlp_small: int,
                    rotary_pct: float, heads_small: int | None = None,
-                   keep_blocks: list[int] | None = None) -> dict:
+                   keep_blocks: list[int] | None = None,
+                   moments: dict | None = None) -> dict:
     """Kept-wire indices per SMALL layer: {(l, "qk"|"vo"|"mlp"): indices}.
 
     keep_blocks maps small layer l -> large block keep_blocks[l] (default: all,
     same depth). If heads shrink (heads_small < heads), head_dim must match and
     whole heads are kept — one keep-set shared by Q/K/V/O per layer.
+
+    moments (the second moments the compensation solve reads) switches the V/O and
+    MLP scores from weight norms to expected output energy, sqrt(Σ_dd)·‖col_d‖:
+    the activation-informed baseline that gives plain selection the method's own
+    statistics. QK selection is unchanged (no Σ is measured on that path).
     """
     heads_small = heads_small or heads
     keep_blocks = keep_blocks or list(range(1 + max(l for l, _ in WL)))
@@ -100,13 +111,18 @@ def select_indices(WL: dict, *, heads: int, head_dim_small: int, mlp_small: int,
     for l, b in enumerate(keep_blocks):
         Q, K, V, O = WL[(b, "Q")], WL[(b, "K")], WL[(b, "V")], WL[(b, "O")]
         UP, DOWN = WL[(b, "MLP_UP")], WL[(b, "MLP_DOWN")]
+        act_attn = act_mlp = None
+        if moments is not None:
+            act_attn = moments[(b, "attn_in")].diagonal().sqrt().to(O.device)
+            act_mlp = moments[(b, "mlp_in")].diagonal().sqrt().to(DOWN.device)
         if heads_small < heads:
-            idx = _whole_head_indices(V, O, heads, head_dim_L, heads_small)
+            idx = _whole_head_indices(V, O, heads, head_dim_L, heads_small, act_attn)
             sel[(l, "qk")] = sel[(l, "vo")] = idx
         else:
             sel[(l, "qk")] = _qk_head_indices(Q, K, heads, head_dim_L, head_dim_small, rotary_pct)
-            sel[(l, "vo")] = _vo_head_indices(V, O, heads, head_dim_L, head_dim_small)
-        sel[(l, "mlp")] = (UP.norm(dim=1) * DOWN.norm(dim=0)).topk(mlp_small).indices.sort().values
+            sel[(l, "vo")] = _vo_head_indices(V, O, heads, head_dim_L, head_dim_small, act_attn)
+        mlp_gain = UP.norm(dim=1) if act_mlp is None else act_mlp
+        sel[(l, "mlp")] = (mlp_gain * DOWN.norm(dim=0)).topk(mlp_small).indices.sort().values
     return sel
 
 
@@ -189,7 +205,8 @@ def ls_compensate(M: torch.Tensor, Sigma: torch.Tensor, kept: torch.Tensor,
 def hybrid_weights(WL: dict, res_idx: torch.Tensor, moments: dict, *, heads: int,
                    head_dim_small: int, mlp_small: int, rotary_pct: float,
                    heads_small: int | None = None,
-                   keep_blocks: list[int] | None = None) -> dict:
+                   keep_blocks: list[int] | None = None,
+                   sel: dict | None = None) -> dict:
     """Subclone + least-squares compensation at the two safe (purely linear) spots:
     MLP_DOWN (post-GELU hidden → residual) and O (attention context → residual).
     Read-in weights are NOT compensated in v1: the small LayerNorm renormalizes
@@ -199,7 +216,7 @@ def hybrid_weights(WL: dict, res_idx: torch.Tensor, moments: dict, *, heads: int
     keep_blocks = keep_blocks or list(range(1 + max(l for l, _ in WL)))
     kw = dict(heads=heads, head_dim_small=head_dim_small, mlp_small=mlp_small,
               rotary_pct=rotary_pct, heads_small=heads_small, keep_blocks=keep_blocks)
-    sel = select_indices(WL, **kw)
+    sel = sel or select_indices(WL, **kw)
     W = subclone_weights(WL, res_idx, sel=sel, **kw)
     for l, b in enumerate(keep_blocks):
         W[(l, "MLP_DOWN")] = ls_compensate(WL[(b, "MLP_DOWN")][res_idx],
