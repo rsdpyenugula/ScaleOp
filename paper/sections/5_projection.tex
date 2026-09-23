@@ -73,8 +73,8 @@ numbers come from the strided and quick evaluations respectively; the evals
 agree at these magnitudes (random init scores $\approx$66k on both).} What
 remains is the basis-mixing cost, and it is a trainability cost more than a
 zero-shot one: with neutral norms, the projected model starts within $7\%$ of
-structure-preserving selection ($12{,}323$ vs $11{,}509$ at $t{=}0$) yet
-finishes $3\times$ worse after identical training ($1{,}054.5$ vs $355.8$ at
+structure-preserving selection ($12{,}323$ vs.\ $11{,}509$ at $t{=}0$) yet
+finishes $3\times$ worse after identical training ($1{,}054.5$ vs.\ $355.8$ at
 30M tokens, Table~\ref{tab:ladder}). Rotary, per-head, and GELU mixing are not
 individually isolated here; their joint effect is what the training gap
 measures. Function-preserving zero-shot conversion therefore needs

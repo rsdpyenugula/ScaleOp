@@ -76,7 +76,7 @@ All experiments use the public Pythia suite and the
 from a seeded, deterministic pipeline: weight extraction is validated by exact
 (bit-identical) reconstruction, forward passes are greedy and reproducible per
 device, and each reported comparison fixes data order, optimizer, schedule, and
-token budget across arms --- varying only the initialization. The frozen
+token budget across arms, varying only the initialization. The frozen
 $10{,}000\times128$ evaluation corpus is built once from a recorded stream offset
 and contamination-guarded against the continued-pre-training stream; decisive
 comparisons report three data-draw seeds. The full code, all configs and seeds,

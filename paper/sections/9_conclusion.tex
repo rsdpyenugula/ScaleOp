@@ -4,8 +4,8 @@
 We asked what actually transfers when a pretrained transformer is converted into a
 smaller sibling, and answered it in a controlled, single-family setting:
 representations align across sizes but parameters do not, dense weight projection
-is destructive for a mechanically verified reason: it breaks the architecture's
-essential wiring, and after the best-fit linear operator the weight residuals
+is destructive for a mechanically verified reason (it breaks the architecture's
+essential wiring), and after the best-fit linear operator the weight residuals
 carry no signal our probes can exploit. The value of a conversion therefore lives in initialization, not
 in any learnable zero-shot weight correction. Decomposing that initialization into
 two independent levers, least-squares compensation (what the network
