@@ -229,7 +229,7 @@ Checkpoints: `artifacts/m5_1B_checkpoints/{hybrid_rs,subclone_rs,random}.pt`.
 | K5 | 1B checkpoints on disk | release | 3 files | `artifacts/m5_1B_checkpoints/*.pt` | VERIFIED |
 | K6 | hybrid_rs 1B, 3 seeds (2026-09-22 AWS p4d re-run, seeds 1–2) | abstract/§7 | 40.3±0.3 | `results_aws/m5_hybrid_rs_1b_s{1,2}/*/curve.json` `ppl_full`=40.40, 40.47 (+K1) → mean 40.28 sd 0.28 | VERIFIED |
 | K7 | subclone_rs 1B, 3 seeds | abstract/§7 | 40.3±0.5 | `results_aws/m5_subclone_rs_1b_s{1,2}/20260921_231345/curve.json` (resumed-from-600M runs; the `165004` dirs are the OOM'd first attempts) `ppl_full`=40.08, 40.93 (+K2) → mean 40.32 sd 0.53 | VERIFIED |
-| K8 | 1B extended eval, seeds 1–2 (C4 / wk@2048 / 4 tasks) | §7, `tab:conv1b` | as tabled | `results_aws/m5_extended_eval_1b_s{1,2}/*/extended_eval.json` | VERIFIED |
+| K8 | 1B extended eval, seeds 0–2 (C4 / wk@2048 / 4 tasks) | §7, `tab:conv1b` | as tabled; wk@2048 hybrid 74.2±4.8 vs subclone 67.3±0.9 (hybrid worse 3/3); C4 44.46 vs 44.41 | `results_aws/m5_extended_eval_1b_s{0,1,2}/*/extended_eval.json` (s0 run 2026-09-23 on the Spark from `artifacts/m5_1B_checkpoints`; includes random) | VERIFIED |
 | K9 | 1B seed-1/2 weights | release | 4 files | `s3://de-aiml-scaleop-662022802750/conv_reseed/checkpoints/{hybrid_rs,subclone_rs}_1b_s{1,2}.pt` (1.5 GiB each; not on the Mac) | VERIFIED |
 
 ## L. §7 Information-matched control (Table: `tab:actsel`, primary pair, 30M; Kumar review #2)
