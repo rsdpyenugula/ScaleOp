@@ -26,12 +26,14 @@ Paths are relative to repo root. Timestamped dirs elided to the parent for brevi
 |---|---|---|---|---|---|
 | A1 | primary conversion pair | abstract | 1.4B→410M | `results/m2_maps/.../maps_r2.json` (`large/small`) | VERIFIED |
 | A2 | representations align (ridge R²) | abstract | R²=0.84 | `results/m2_maps/20260727_231935/maps_r2.json` (`ridge_r2_mean`=0.8441) | VERIFIED |
-| A3 | hybrid_rs final ppl (mean±std) | abstract | 83.9±1.8 | `results/m5_hybrid_rs{,_s1,_s2}/.../curve.json` (`ppl_full`) | **MISMATCH** — recomputed mean **83.955 → rounds to 84.0**, not 83.9 (std 1.80 ✓) |
+| A3 | hybrid_rs final ppl (mean±std) | abstract | 84.0±1.8 | `m5_hybrid_rs{,_s1,_s2}/20260731*/curve.json` (exclude `20260803*` 1B runs) | VERIFIED (83.955±1.80) |
 | A4 | subclone_rs final ppl (mean±std) | abstract | 89.7±3.7 | `results/m5_subclone_rs{,_s1,_s2}/.../curve.json` | VERIFIED (89.675±3.73) |
 | A5 | paired within-seed wins | abstract/§7 | 3/3 | `m5_hybrid_rs*` vs `m5_subclone_rs*` per-seed `ppl_full` | VERIFIED (83.0<86.4, 86.0<93.7, 82.8<88.9) |
 | A6 | speedup over from-scratch @30M | abstract/§7 | 18× | `m5_random`(1519.03)/`m5_hybrid_rs`(83.02) → 18.3 | VERIFIED |
 | A7 | held at 2× training context | abstract/§7 | 2048 | `results/m5_extended_eval/.../extended_eval.json` (`wikitext_ppl_ctx2048`) | VERIFIED |
-| A8 | held-out depth-dominated pair, 3 seeds | abstract/§7 | 3 seeds | `results/m5_{hybrid,subclone,random}_b_s{0,1,2}/.../curve.json` | VERIFIED |
+| A8 | held-out depth-dominated pair, 3 seeds | abstract/§7 | 3 seeds | `m5_{hybrid,subclone,random}_b_s{0,1,2}/.../curve.json` | VERIFIED |
+| A9 | 1B convergence parity | abstract/§7/§8 | 40.0 vs 40.0 | `m5_{hybrid_rs,subclone_rs}/20260803_052406/curve.json` | VERIFIED (39.956/39.959) |
+| A10 | 1B random final | abstract/§7/§8 | 57.4 | `m5_random/20260803_052406/curve.json` | VERIFIED (57.411) |
 
 ## B. §3 Setup (architecture & protocol constants)
 
@@ -40,10 +42,10 @@ Paths are relative to repo root. Timestamped dirs elided to the parent for brevi
 | S1 | primary widths: residual 2048→1024 | §3 | 2048→1024 | `results/m2_weights/.../weights.json` (`shape_large/small` = [50304,2048]/[50304,1024]) | VERIFIED |
 | S2 | primary: head dim 128→64, MLP 8192→4096, 24L/16H | §3 | — | (Pythia config) | CONFIG |
 | S3 | held-out pair 410M→160M: 24→12 blocks, 16→12 heads, ~25% width | §3/§7 | — | `results/m4_transfer/.../transfer.json` names `pair_B=[410m,160m]`; dims are config | CONFIG |
-| S4 | scale pair 6.9B→1.4B | §3/§7 | — | (runs in flight; Table 7 placeholder — all dashes) | CONFIG |
+| S4 | scale pair 6.9B→1.4B | §3/§7 | Table 10 | `m5_{subclone_rs,hybrid,hybrid_rs,random}_c/.../curve.json` | VERIFIED |
 | S5 | frozen corpus 10,000×128 tok; first 500 subset | §3 | 10000/500 | (protocol; not in results JSON) | CONFIG |
 | S6 | AdamW β(.9,.95), wd 0.1, warmup 100, clip 1.0 | §3 | — | (protocol) | CONFIG |
-| S7 | token budget 30M (primary), 100M (persistence) | §3/§7 | 30M/100M | curve `maxtok`: 30,015,488 and 100,007,936 across `m5_*` | VERIFIED |
+| S7 | token budget 30M / 100M / 1B | §3/§7/§8 | 30M/100M/1B | curve `tokens` in resolved_config.yaml | VERIFIED |
 
 ## C. §4 Representations align, parameters do not
 
@@ -162,7 +164,7 @@ Zero-shot = curve `ppl` at t=0 (quick-eval); Final = last `ppl_full` (strided).
 | T1 | subclone_rs seeds 0/1/2 | Table 7 | 86.4/93.7/88.9 | `m5_subclone_rs`(86.37)/`_rs_s1`(93.71)/`_rs_s2`(88.94) `ppl_full` | VERIFIED |
 | T2 | subclone_rs mean±std | Table 7 | 89.7±3.7 | recomputed 89.675 ± 3.73 | VERIFIED |
 | T3 | hybrid_rs seeds 0/1/2 | Table 7 | 83.0/86.0/82.8 | `m5_hybrid_rs`(83.02)/`_rs_s1`(86.03)/`_rs_s2`(82.82) `ppl_full` | VERIFIED |
-| T4 | hybrid_rs mean±std | Table 7 | 83.9±1.8 | recomputed **mean 83.955 → 84.0** (std 1.80 ✓) | **MISMATCH** (mean truncated; same finding as A3) |
+| T4 | hybrid_rs mean±std | Table 7 | 84.0±1.8 | `m5_hybrid_rs{,_s1,_s2}/20260731*/curve.json` (exclude 1B) | VERIFIED (83.955±1.80) |
 | T5 | hybrid_rs worst beats subclone_rs best | §7 | 86.0 < 86.4 | T3 max 86.03 < T1 min 86.37 | VERIFIED |
 | T6 | paired wins | §7 | 3/3 | per-seed (see A5) | VERIFIED |
 
@@ -209,38 +211,70 @@ Source: `results/m5_extended_eval/20260729_233557/extended_eval.json`. Each row 
 |---|---|---|---|---|---|
 | C1 | compensation moments pass | §3/§7 | ~75s / 1,000 seqs | (protocol timing; not in results JSON) | CONFIG |
 | C2 | per-run wall time / throughput | §7 | ~55 min / ~9.4k tok/s | 30,015,488 tok ÷ 9,400 = 53 min (self-consistent); budget VERIFIED via curve `maxtok` | CONFIG (rate) / VERIFIED (30M) |
-| C3 | scale pair 6.9B→1.4B results | §7 Table 10 | — | placeholder, all dashes ("runs in flight") — no claim | n/a |
+| C3 | scale pair 6.9B→1.4B results | §7 Table 10 | 572/776/1213/1413 | `m5_{subclone_rs,hybrid,hybrid_rs,random}_c/.../curve.json` | VERIFIED |
+
+## K. §7 / §8 1B convergence (2026-08-03 re-run)
+
+Source: `project_docs/results/m5_{hybrid_rs,subclone_rs,random}/20260803_052406/curve.json`.
+Checkpoints: `artifacts/m5_1B_checkpoints/{hybrid_rs,subclone_rs,random}.pt`.
+**Note:** 1B and 30M runs share the `m5_hybrid_rs` prefix — disambiguate by timestamp
+(`20260803_052406` = 1B; `20260731_*` = 30M).
+
+| # | claim (short) | paper location | value | primary source file | status |
+|---|---|---|---|---|---|
+| K1 | hybrid_rs 1B final, seed 0 | App. `tab:conv1b` | 40.0 | `ppl_full`=39.9565 | VERIFIED |
+| K2 | subclone_rs 1B final, seed 0 | App. `tab:conv1b` | 40.0 | `ppl_full`=39.9587 | VERIFIED |
+| K3 | random 1B final | §7/§8 | 57.4 | `ppl_full`=57.4109 | VERIFIED |
+| K4 | transfer vs scratch @1B | §7 | ~1.4× | 57.41/40.3 = 1.42× | VERIFIED |
+| K5 | 1B checkpoints on disk | release | 3 files | `artifacts/m5_1B_checkpoints/*.pt` | VERIFIED |
+| K6 | hybrid_rs 1B, 3 seeds (2026-09-22 AWS p4d re-run, seeds 1–2) | abstract/§7 | 40.3±0.3 | `results_aws/m5_hybrid_rs_1b_s{1,2}/*/curve.json` `ppl_full`=40.40, 40.47 (+K1) → mean 40.28 sd 0.28 | VERIFIED |
+| K7 | subclone_rs 1B, 3 seeds | abstract/§7 | 40.3±0.5 | `results_aws/m5_subclone_rs_1b_s{1,2}/20260921_231345/curve.json` (resumed-from-600M runs; the `165004` dirs are the OOM'd first attempts) `ppl_full`=40.08, 40.93 (+K2) → mean 40.32 sd 0.53 | VERIFIED |
+| K8 | 1B extended eval, seeds 1–2 (C4 / wk@2048 / 4 tasks) | §7, `tab:conv1b` | as tabled | `results_aws/m5_extended_eval_1b_s{1,2}/*/extended_eval.json` | VERIFIED |
+| K9 | 1B seed-1/2 weights | release | 4 files | `s3://de-aiml-scaleop-662022802750/conv_reseed/checkpoints/{hybrid_rs,subclone_rs}_1b_s{1,2}.pt` (1.5 GiB each; not on the Mac) | VERIFIED |
+
+## L. §7 Information-matched control (Table: `tab:actsel`, primary pair, 30M; Kumar review #2)
+
+Source: `scratch/m5_act_results/m5_{subclone_rs_act,hybrid_rs_act}_s{0,1,2}/*/curve.json`
+(Spark, isolated `~/projects/ScaleOp_p1` at master `a76741b`, 2026-09-22/23; `configs/m5.yaml`,
+batch 32, seeds 0–2 = same data draws as `tab:seeded`). Code: `lib/subclone.py::select_indices(moments=...)`.
+
+| # | claim (short) | paper location | value | primary source file | status |
+|---|---|---|---|---|---|
+| L1 | subclone_rs_act per seed | `tab:seeded` | 86.9 / 89.8 / 85.5 | `ppl_full` per dir | VERIFIED |
+| L2 | hybrid_rs_act per seed | `tab:seeded` | 81.7 / 81.4 / 77.6 | `ppl_full` per dir | VERIFIED |
+| L3 | subclone_rs_act mean±std | `tab:actsel` | 87.4±2.2 | mean 87.38 sd 2.18 | VERIFIED |
+| L4 | hybrid_rs_act mean±std | `tab:actsel` | 80.2±2.3 | mean 80.21 sd 2.25 | VERIFIED |
+| L5 | information effect, no comp | §7 | 2.3, 2/3 seeds | 86.4→86.9 (−0.5), 93.7→89.8, 88.9→85.5 | VERIFIED |
+| L6 | compensation effect, norm / act | §7 | 5.7 / 7.2, 3/3 each | (3.4, 7.7, 6.1) / (5.2, 8.4, 7.9) | VERIFIED |
+| L7 | hybrid_rs beats subclone_rs_act, paired | abstract/§1/§7/§9 | 3/3 | 83.0<86.9, 86.0<89.8, 82.8<85.5 | VERIFIED |
+| L8 | "recovers less than half of that gap" (abstract) | abstract | 2.3 / 5.7 = 0.40 | information effect over the hybrid_rs–subclone_rs gap | VERIFIED |
+
+*(Rows K6–K9 and section L added 2026-09-23; the summary counts below predate them.)*
 
 ---
 
 ## Summary counts
 
-Total quantitative claim rows audited: **129**.
+Total quantitative claim rows audited: **137**.
 
 | status | count |
 |---|---|
-| VERIFIED | 118 |
+| VERIFIED | 131 |
 | SECONDARY | 1 |
-| MISMATCH | 2 |
+| MISMATCH | 0 |
 | UNSOURCED | 0 |
-| CONFIG (external constants, not data issues) | 7 |
-| n/a (empty placeholder, Table 10 scale) | 1 |
+| CONFIG (external constants, not data issues) | 5 |
 | — of the VERIFIED, additionally flagged METRIC-MIX | 3 (P21, P22, H3) |
 
-Per-section VERIFIED tally: A 7/8 · S 2/7 (5 CONFIG) · R 15/15 · P 23/23 · E 19/20 (1 SECONDARY) ·
-L 22/22 · T 5/6 · X 6/6 · H+U 19/19 · J 0/3 (2 CONFIG, 1 n/a).
+Per-section VERIFIED tally: A 10/10 · S 3/7 (4 CONFIG) · R 15/15 · P 23/23 · E 19/20 (1 SECONDARY) ·
+L 22/22 · T 6/6 · X 6/6 · H+U 19/19 · J 2/3 (1 CONFIG) · K 5/5.
 
-Note: the 2 MISMATCH rows (A3 and T4) are the **same underlying finding** (hybrid_rs
-seeded mean) appearing in two paper locations — 1 distinct defect.
+**Run disambiguation:** `m5_hybrid_rs/20260803_052406` is the 1B convergence run;
+30M seeded runs use `20260731_*` timestamps under the same prefix.
 
 ## Pre-arXiv fixes required (everything not cleanly VERIFIED)
 
-1. **[MISMATCH] hybrid_rs seeded mean = 83.9, should round to 84.0** (abstract line ~37;
-   Table `tab:seeded` §7; also propagated into the §7 prose "83.9±1.8").
-   Per-seed finals [83.017, 86.025, 82.823] give mean **83.955**, which rounds to **84.0**
-   (or write 83.96). The paper's 83.9 is a truncation, not a round. The ±1.8 std and all
-   three seed values are correct. Decide: display 84.0, or keep one more digit (83.96±1.80).
-   Cosmetic (sub-0.1) but it is the headline number and appears verbatim in the abstract.
+1. ~~**[MISMATCH] hybrid_rs seeded mean**~~ **RESOLVED** — paper now shows 84.0±1.8.
 
 2. **[SECONDARY] pair-B operator fit range "0.56–0.74" (§6, Test 4)** has no raw JSON.
    `results/m4_transfer/.../transfer.json` stores only the predictor reductions, not the

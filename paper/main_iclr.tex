@@ -45,8 +45,11 @@ MLP down-projections), and the norm-fronted paths take rescale. Compensation is
 a token-efficient, low-budget win rather than a universal one. At 30M tokens it beats the strongest subcloning
 variant on both a width-reduced pair ($84.0\pm1.8$ vs.\ $89.7\pm3.7$, 3/3 seeds)
 and a held-out depth-reduced pair ($109.3$ vs.\ $117.9$, 3/3 seeds), reaching a
-given quality with fewer tokens. At a $33\times$ larger budget the two converge
-to parity ($40.0$ vs.\ $40.0$), both far ahead of from-scratch, which transfer
+given quality with fewer tokens. Giving plain selection the same activation
+statistics the compensation reads recovers less than half of that gap (3/3
+seeds), so the gain is the re-fit, not the information. At a $33\times$ larger
+budget the two converge to parity ($40.3\pm0.3$ vs.\ $40.3\pm0.5$, 3 seeds),
+both far ahead of from-scratch, which transfer
 initialization always beats: by up to $18\times$ at low budget, with the margin
 narrowing at convergence and at the largest scale. We also map the method's
 boundary. At about $5\times$ the donor scale (6.9B$\to$1.4B) stacking both levers

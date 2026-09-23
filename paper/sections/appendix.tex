@@ -177,7 +177,10 @@ real 410M       & 21.0 & 14.5 & 0.516 & 0.519 & 0.337 & 0.667 \\
 \footnotesize
 \caption{Primary-pair final WikiText-103 perplexity across three data-draw seeds
 (30M tokens; identical budget/schedule per seed). \textsc{hybrid\_rs} wins every
-paired comparison; its worst seed beats \textsc{subclone\_rs}'s best.}
+paired comparison; its worst seed beats \textsc{subclone\_rs}'s best. The
+\textsc{\_act} rows are the information-matched control of
+Table~\ref{tab:actsel}: V/O and MLP selection scored by activation energy
+instead of weight norm.}
 \label{tab:seeded}
 \begin{tabular}{lrrrr}
 \toprule
@@ -185,6 +188,44 @@ Init & seed 0 & seed 1 & seed 2 & mean $\pm$ std \\
 \midrule
 subclone\_rs        & 86.4 & 93.7 & 88.9 & $89.7 \pm 3.7$ \\
 \textbf{hybrid\_rs} & \textbf{83.0} & \textbf{86.0} & \textbf{82.8} & $\mathbf{84.0 \pm 1.8}$ \\
+\midrule
+subclone\_rs\_act   & 86.9 & 89.8 & 85.5 & $87.4 \pm 2.2$ \\
+hybrid\_rs\_act     & 81.7 & 81.4 & 77.6 & $80.2 \pm 2.3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{1B convergence: per-seed finals and extended evaluation (\S\ref{sec:race:hardening})}
+\label{app:conv1b}
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Primary pair at 1B tokens. Top: final WikiText-103 perplexity per
+data-draw seed (seed 0 is the original run; seeds 1--2 re-run on the identical
+protocol). Bottom: extended evaluation of the 1B checkpoints, same metrics and
+guess floors as Table~\ref{tab:extended}.}
+\label{tab:conv1b}
+\begin{tabular}{lrrrr}
+\toprule
+Init & seed 0 & seed 1 & seed 2 & mean $\pm$ std \\
+\midrule
+subclone\_rs & 40.0 & 40.1 & 40.9 & $40.3 \pm 0.5$ \\
+hybrid\_rs   & 40.0 & 40.4 & 40.5 & $40.3 \pm 0.3$ \\
+random       & 57.4 & --   & --   & -- \\
+\bottomrule
+\end{tabular}
+\\[6pt]
+\begin{tabular}{llrrrrrr}
+\toprule
+Init & seed & C4 ppl & wk@2048 & lambada & arc\_easy & hellaswag & piqa \\
+\midrule
+hybrid\_rs   & 1 & 44.3 & 79.4 & 0.204 & 0.401 & 0.277 & 0.583 \\
+subclone\_rs & 1 & 44.3 & 66.5 & 0.208 & 0.400 & 0.277 & 0.587 \\
+hybrid\_rs   & 2 & 44.7 & 69.9 & 0.206 & 0.392 & 0.277 & 0.583 \\
+subclone\_rs & 2 & 44.5 & 67.2 & 0.205 & 0.394 & 0.276 & 0.594 \\
+\midrule
+real 410M    & -- & 21.0 & 14.5 & 0.516 & 0.519 & 0.337 & 0.667 \\
 \bottomrule
 \end{tabular}
 \end{table}

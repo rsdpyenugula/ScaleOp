@@ -178,6 +178,40 @@ $14\times$ subclone); the multiple-choice tasks sit near guess floors, so 30M
 tokens buys language modeling, not task reasoning; anchor scores match published
 Pythia numbers.
 
+\paragraph{The information-matched control.}
+Compensation is the only step that reads the donor's activation statistics
+($\Sigma$ in Eq.~\ref{eq:lscomp}); plain selection scores wires by weight norm.
+A fair question is whether the gain is the re-fit or merely the extra
+information. We give selection the same statistics: V/O and MLP wires ranked by
+expected output energy $\sqrt{\Sigma_{dd}}\,\lVert\mathrm{col}_d\rVert$ instead
+of $\lVert\mathrm{row}\rVert\lVert\mathrm{col}\rVert$ (the \textsc{\_act} arms;
+QK and residual selection unchanged). Table~\ref{tab:actsel} gives the
+$2\times2$. The statistics help selection by $2.3$ ($2/3$ seeds); compensation
+helps by $5.7$ without them and $7.2$ with them ($3/3$ seeds each); and
+\textsc{hybrid\_rs} without the statistics still beats
+\textsc{subclone\_rs\_act} with them in every seed ($84.0$ vs.\ $87.4$). The gain
+is the re-fit, not the information. The two stack:
+\textsc{hybrid\_rs\_act} ($80.2\pm2.3$) is the best 30M endpoint we measured.
+
+\begin{table}[!htb]
+\centering
+\footnotesize
+\caption{Information-matched control, primary pair (1.4B$\to$410M), 30M tokens,
+final WikiText-103 perplexity, mean$\pm$std over three data-draw seeds (per-seed
+values in App.~Table~\ref{tab:seeded}). Rows: whether the read-out maps are
+re-fit. Columns: whether V/O and MLP selection reads the same activation
+statistics the re-fit uses.}
+\label{tab:actsel}
+\begin{tabular}{lrr}
+\toprule
+ & selection by weight norm & selection by activation energy \\
+\midrule
+no compensation (\textsc{subclone\_rs})   & $89.7\pm3.7$ & $87.4\pm2.2$ \\
+$+$ compensation (\textsc{hybrid\_rs})    & $84.0\pm1.8$ & $\mathbf{80.2\pm2.3}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \paragraph{The lead persists at longer budget.}
 Re-running the two leaders at 100M tokens, hybrid finishes at $62.3$ and
 subclone at $103.1$; hybrid crosses subclone's 100M endpoint at
@@ -187,9 +221,14 @@ compared only within a horizon).}
 
 \paragraph{At convergence, the edge closes.}
 Pushing the primary pair to 1B tokens ($33\times$ the headline budget), the two
-rescale leaders finish level: \textsc{hybrid\_rs} $40.0$ vs.\
-\textsc{subclone\_rs} $40.0$ (parity in this run; one seed per arm), both $\sim$$1.4\times$ ahead of from scratch
-($57.4$) and far nearer the real 410M ($\approx15.6$) than at 30M. Compensation's
+rescale leaders finish level across three data-draw seeds: \textsc{hybrid\_rs}
+$40.3\pm0.3$ vs.\ \textsc{subclone\_rs} $40.3\pm0.5$
+(App.~Table~\ref{tab:conv1b}), both $\sim$$1.4\times$ ahead of from scratch
+($57.4$) and far nearer the real 410M ($\approx15.6$) than at 30M. The parity
+holds out of domain (C4 $44.5$ vs.\ $44.4$) and on the four zero-shot tasks; at
+$2\times$ context it does not: \textsc{hybrid\_rs} is worse and more
+seed-variable there ($79.4$/$70.0$ vs.\ $66.5$/$67.2$), which we report rather
+than smooth. Compensation's
 advantage is thus a low-budget, token-efficiency effect: it reaches a given
 quality with fewer tokens but is redundant with rescale once the budget is large,
 the two levers improving the same underlying conditioning so that at convergence
