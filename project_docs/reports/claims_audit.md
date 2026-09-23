@@ -240,26 +240,43 @@ batch 32, seeds 0–2 = same data draws as `tab:seeded`). Code: `lib/subclone.py
 
 | # | claim (short) | paper location | value | primary source file | status |
 |---|---|---|---|---|---|
-| L1 | subclone_rs_act per seed | `tab:seeded` | 86.9 / 89.8 / 85.5 | `ppl_full` per dir | VERIFIED |
-| L2 | hybrid_rs_act per seed | `tab:seeded` | 81.7 / 81.4 / 77.6 | `ppl_full` per dir | VERIFIED |
-| L3 | subclone_rs_act mean±std | `tab:actsel` | 87.4±2.2 | mean 87.38 sd 2.18 | VERIFIED |
-| L4 | hybrid_rs_act mean±std | `tab:actsel` | 80.2±2.3 | mean 80.21 sd 2.25 | VERIFIED |
-| L5 | information effect, no comp | §7 | 2.3, 2/3 seeds | 86.4→86.9 (−0.5), 93.7→89.8, 88.9→85.5 | VERIFIED |
-| L6 | compensation effect, norm / act | §7 | 5.7 / 7.2, 3/3 each | (3.4, 7.7, 6.1) / (5.2, 8.4, 7.9) | VERIFIED |
-| L7 | hybrid_rs beats subclone_rs_act, paired | abstract/§1/§7/§9 | 3/3 | 83.0<86.9, 86.0<89.8, 82.8<85.5 | VERIFIED |
-| L8 | "recovers less than half of that gap" (abstract) | abstract | 2.3 / 5.7 = 0.40 | information effect over the hybrid_rs–subclone_rs gap | VERIFIED |
+| AC1 | subclone_rs_act per seed | `tab:seeded` | 86.9 / 89.8 / 85.5 | `ppl_full` per dir | VERIFIED |
+| AC2 | hybrid_rs_act per seed | `tab:seeded` | 81.7 / 81.4 / 77.6 | `ppl_full` per dir | VERIFIED |
+| AC3 | subclone_rs_act mean±std | `tab:actsel` | 87.4±2.2 | mean 87.38 sd 2.18 | VERIFIED |
+| AC4 | hybrid_rs_act mean±std | `tab:actsel` | 80.2±2.3 | mean 80.21 sd 2.25 | VERIFIED |
+| AC5 | information effect, no comp | §7 | 2.3, 2/3 seeds | 86.4→86.9 (−0.5), 93.7→89.8, 88.9→85.5 | VERIFIED |
+| AC6 | compensation effect, norm / act | §7 | 5.7 / 7.2, 3/3 each | (3.4, 7.7, 6.1) / (5.2, 8.4, 7.9) | VERIFIED |
+| AC7 | hybrid_rs beats subclone_rs_act, paired | abstract/§1/§7/§9 | 3/3 | 83.0<86.9, 86.0<89.8, 82.8<85.5 | VERIFIED |
+| AC8 | "recovers less than half of that gap" (abstract) | abstract | 2.3 / 5.7 = 0.40 | information effect over the hybrid_rs–subclone_rs gap | VERIFIED |
 
-*(Rows K6–K9 and section L added 2026-09-23; the summary counts below predate them.)*
+## M. §7 Distillation comparison, 3 seeds (Table: `tab:distill`, primary pair, 30M, batch 16)
+
+Source: seed 0 in `scratch/m5_distill_results/m5_{subclone_rs,hybrid_rs,random}_{b16,d16}/*/curve.json`
+(Spark, 2026-08-07); seeds 1–2 in `scratch/m5_reseed_results/m5_{subclone_rs,hybrid_rs}_{b16,d16}_s{1,2}/*/curve.json`
+(Spark, 2026-08-26/27). `b16` = no distillation, `d16` = frozen-1.4B-teacher KD (T=2, α=0.5), both batch 16.
+Seeds are the same data draws as `tab:seeded` (`skip_docs` offset by seed).
+
+| # | claim (short) | paper location | value | primary source file | status |
+|---|---|---|---|---|---|
+| DS1 | subclone_rs, no distill, per seed | `tab:distill` | 91.6 / 94.7 / 95.3 → 93.9±2.0 | `ppl_full` per dir; mean 93.86 sd 1.98 | VERIFIED |
+| DS2 | hybrid_rs, no distill, per seed | `tab:distill` | 88.3 / 89.4 / 87.0 → 88.2±1.2 | mean 88.25 sd 1.21 | VERIFIED |
+| DS3 | subclone_rs + distill, per seed | `tab:distill` | 96.7 / 111.4 / 102.3 → 103.5±7.4 | mean 103.45 sd 7.42 | VERIFIED |
+| DS4 | hybrid_rs + distill, per seed | `tab:distill` | 83.2 / 79.1 / 80.1 → 80.8±2.1 | mean 80.76 sd 2.14 | VERIFIED |
+| DS5 | random, no distill / + distill (single seed, caption says so) | `tab:distill` | 1,359.4 / 1,311.3 | `m5_random_{b16,d16}` `ppl_full` 1359.45 / 1311.29 | VERIFIED |
+| DS6 | ours beats pruning init with and without teacher, 3/3 paired each | §7 distill text, abstract | 3/3, 3/3 | 88.3<91.6, 89.4<94.7, 87.0<95.3; 83.2<96.7, 79.1<111.4, 80.1<102.3 | VERIFIED |
+| DS7 | distill helps ours / hurts pruning init, every seed | §7 distill text | 3/3, 3/3 | 88.3→83.2, 89.4→79.1, 87.0→80.1 all ↓; 91.6→96.7, 94.7→111.4, 95.3→102.3 all ↑ | VERIFIED |
+
+*(Rows K6–K9 and sections L (AC1–AC8) and M (DS1–DS7) added 2026-09-23; counts below updated to include them.)*
 
 ---
 
 ## Summary counts
 
-Total quantitative claim rows audited: **137**.
+Total quantitative claim rows audited: **156** (137 at v2; +4 K, +8 AC, +7 DS on 2026-09-23).
 
 | status | count |
 |---|---|
-| VERIFIED | 131 |
+| VERIFIED | 150 |
 | SECONDARY | 1 |
 | MISMATCH | 0 |
 | UNSOURCED | 0 |
@@ -267,7 +284,7 @@ Total quantitative claim rows audited: **137**.
 | — of the VERIFIED, additionally flagged METRIC-MIX | 3 (P21, P22, H3) |
 
 Per-section VERIFIED tally: A 10/10 · S 3/7 (4 CONFIG) · R 15/15 · P 23/23 · E 19/20 (1 SECONDARY) ·
-L 22/22 · T 6/6 · X 6/6 · H+U 19/19 · J 2/3 (1 CONFIG) · K 5/5.
+L 22/22 · T 6/6 · X 6/6 · H+U 19/19 · J 2/3 (1 CONFIG) · K 9/9 · AC 8/8 · DS 7/7.
 
 **Run disambiguation:** `m5_hybrid_rs/20260803_052406` is the 1B convergence run;
 30M seeded runs use `20260731_*` timestamps under the same prefix.

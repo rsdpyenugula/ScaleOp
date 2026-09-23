@@ -1,5 +1,13 @@
 # Paper 1 outline — "Wiring Beats Blending" (working title)
 
+> **Status (2026-09-23): historical planning outline, superseded by the paper itself.**
+> The published paper is arXiv:2608.02829; v3 title: *Wiring Beats Blending: Structure-Aware
+> Compensation for Transformer Downscaling*. The draft abstract, section names, and wording
+> below are the pre-v1 plan and were deliberately left as written (e.g. "provably", "residuals
+> are noise", single-seed 1B) — the current text lives in `paper/main.tex` + `paper/sections/`,
+> and every number is traced in `claims_audit.md` (sections A–M). Use this file for the
+> structure/format rationale and the milestone checklist only.
+
 Format base: the ICLR-accepted template used by our two closest neighbors —
 LiGO (ICLR'23) and Sheared LLaMA (ICLR'24) — plus the standard accepted-paper
 structure (funnel intro → explicit contribution bullets → method → controlled
@@ -7,7 +15,7 @@ experiments → limitations). Target: arXiv now; ICLR/NeurIPS main or an
 efficiency workshop as venue. 9 pages main text.
 
 ## Title candidates
-1. *Wiring Beats Blending: What Transfers Between Transformer Sizes — and What Doesn't*
+1. *Wiring Beats Blending: What Transfers Between Transformer Sizes — and What Doesn't* (v1–v2 title; **v3 final: Wiring Beats Blending: Structure-Aware Compensation for Transformer Downscaling**, after the Kumar review)
 2. *Size Conversion in Transformer Families: Representations Align, Parameters Don't*
 3. *Selection + Compensation: Strong Initializations for Downscaling Pretrained Transformers*
 
@@ -101,7 +109,8 @@ Energy/cost reduction for model families; released artifacts.
 ## Figures checklist (per plan M6.2)
 cka_heatmap ✓ · maps_r2 ✓ · projection/anchor ppl table ✓ · delta spectra ✓ ·
 predictor-vs-shuffle bars w/ CIs (regen from json) · transfer result ✓ ·
-m5_curves (4 runners) ✓ · [100M curves — pending] · [extended-eval table — pending]
+m5_curves (4 runners) ✓ · [100M curves — pending] · extended-eval table ✓ ·
+conclusion §9 ✓ · limitations/future work §8 ✓ · 1B convergence + checkpoints ✓
 
 ## Release checklist
 - **BEFORE flipping repo public: delete the Paper-2 branches from origin**
@@ -109,9 +118,10 @@ m5_curves (4 runners) ✓ · [100M curves — pending] · [extended-eval table �
   (Paper 1) should be public — or split Paper 1 into a fresh public repo.
 - De-anonymize for arXiv (author/affiliation), drop line numbers, fill the
   reproducibility statement.
-- Repo public + README quickstart; checkpoints (4×30M + 2×100M) to HF — the 1B
-  checkpoints were lost to the AWS fault, so 30M/100M are the release set;
-  frozen corpus recipe; `uv.lock` export; v0.1 tag.
+- Repo public + README quickstart; checkpoints to HF via `tools/hf_upload.py`:
+  4×30M + 2×100M (`data/m5/`) and 3×1B convergence (`artifacts/m5_1B_checkpoints/`,
+  recovered 2026-08-03 — `curve.json` under `m5_*_20260803_052406/`); frozen corpus
+  recipe; `uv.lock` export; v0.1 tag.
 
 ## Style guide (extracted from the anchor papers' mechanics)
 
